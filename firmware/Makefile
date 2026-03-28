@@ -1,5 +1,7 @@
 SHELL := /bin/bash
 
+MS4_PYTHON := $(shell which python3)
+
 MS4_FLASH_BAUD=921600
 MS4_FLASH_BAUD=57600
 
@@ -9,7 +11,7 @@ MS4_PORT=/dev/ttyUSB0
 MS4_PORT=/dev/tty.SLAB_USBtoUART
 
 #'autodetect'
-MS4_PORT=`pio device list --json-output | python -c 'exec("""\nimport json,sys\n\nobj=json.load(sys.stdin)\nfor y in obj:\n if "10C4:EA60" in y["hwid"].upper():\n  print (y["port"])\n""") ' | head -1`
+MS4_PORT=`pio device list --json-output | $(MS4_PYTHON) -c 'exec("""\nimport json,sys\n\nobj=json.load(sys.stdin)\nfor y in obj:\n if "10C4:EA60" in y["hwid"].upper():\n  print (y["port"])\n""") ' | head -1`
 
 all:	clean copy-libs build flash monitor
 
@@ -21,25 +23,18 @@ CSRC += $(NANOPB_DIR)pb_encode.c
 CSRC += $(NANOPB_DIR)pb_decode.c
 CSRC += $(NANOPB_DIR)pb_common.c
 
-PROTOC = ../tools/nanopb/generator/protoc
-PROTOC_OPTS += -I../tools/nanopb/generator/proto
-PROTOC_GEN_NANOPB=../tools/nanopb/generator/protoc-gen-nanopb
+PROTOC = ../../tools/nanopb/generator/protoc
+PROTOC_OPTS += -I../../tools/nanopb/generator/proto
+PROTOC_GEN_NANOPB=../../tools/nanopb/generator/protoc-gen-nanopb
 
 ESPOTA = ../tools/ESP8266_ota/espota.py
 
+#!J! Only here for reference during intake - see platformio.ini instead!
 pio-deps:
+	@echo "#!J! Only here for reference during intake - see platformio.ini instead!"
 	@echo "NOTE: installing platform dependencies with PlatformIO"
 	pio lib install 222 64 423 35 568 170 567 4271
 
-# note: we forcefully copy the .proto file to root, to get it out of tree, but firmware stays master source!
-proto:  MS4.proto 
-	@echo "NANOPB_DIR = $(NANOPB_DIR)"
-	@echo "CFLAGS = $(CFLAGS)"
-	@cp -rfv MS4.proto ../MS4.proto
-	@mkdir -p ./ms4000.proto.out
-	$(PROTOC) $(PROTOC_OPTS) --proto_path .. ../MS4.proto  -o ../MS4.pb --nanopb_out=-v:.
-	python ../tools/nanopb/generator/nanopb_generator.py ../MS4.pb
-	cp MS4.pb.? src/
 
 build:
 	platformio run --upload-port ${MS4_PORT}
@@ -61,7 +56,7 @@ ota.mode:
 
 ota: .pioenvs/ms4000/firmware.bin
 	@echo "ota:"
-	python ${ESPOTA} -i proto-jv.local -p 8266 -f .pioenvs/ms4000/firmware.bin -d -r
+	$(MS4_PYTHON) ${ESPOTA} -i proto-jv.local -p 8266 -f .pioenvs/ms4000/firmware.bin -d -r
 
 reset-device:
 	-@echo "^T^R" | pio device monitor --quiet -b 921600 --dtr 0 --rts 1 -p ${MS4_PORT} 
@@ -76,23 +71,32 @@ pio-deps-clean:
 	rm -rf .piolibdeps/
 
 test:    proto build flash monitor
-    
-setupvenv:
+
+python-venv:
+	sudo apt install python3-venv
+
+python-environment:
 	rm -rf .venv_firmware
-	python3 -m venv .venv_firmware
-	echo "please run: . .venv_firmware/bin/activate && make setupdeps"
+	$(MS4_PYTHON) -m venv .venv_firmware
+	echo "please run: . .venv_firmware/bin/activate"
 
-setupdeps:
-	pip install -r requirements.txt
+python-requirements:
+	@echo "Python in-use is: $(MS4_PYTHON)"
+	$(MS4_PYTHON) -m pip install -r requirements.txt
 
-ubuntu22:
-	sudo apt install python3.10-venv
-	make setupvenv
-	.venv_firmware/bin/pip install -r requirements.txt
+# note: there is one single source for the shared MS4.proto file - at the root of the repo!
+proto:  proto-clean ../MS4.proto 
+	@echo "NANOPB_DIR = $(NANOPB_DIR)"
+	@echo "CFLAGS = $(CFLAGS)"	
+	cd src/ && $(PROTOC) $(PROTOC_OPTS) --proto_path ../.. ../../MS4.proto  -o ./MS4.pb --nanopb_out=-v:./ && $(MS4_PYTHON) ../../tools/nanopb/generator/nanopb_generator.py ./MS4.pb
+ 
+proto-clean:
+	rm -rf src/MS4.pb.? src/MS4.pb
+
+clean-environment: proto-clean
+	rm -rf .pioenvs
+	rm -rf .venv_firmware
 
 clean:
-	# !J! Todo: BUILD_PRODUCT_DIR
-	# rm -rf .pioenvs
 	pio run -t clean
-	# rm -rf .venv_firmware
-	#rm -rf src/MS4.pb.c src/MS4.pb.h
+

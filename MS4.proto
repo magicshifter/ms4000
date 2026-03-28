@@ -186,9 +186,9 @@ message MS4 {
             optional int32 sensitivity = 2 [ default = 2 ];
             optional RGB color = 3;
 
-            optional int32 thresholdLow = 2 [ default = 100 ];
-            optional int32 thresholdMedium = 2 [ default = 200 ];
-            optional int32 thresholdHigh = 2 [ default = 500 ];
+            optional int32 thresholdLow = 4 [ default = 100 ];
+            optional int32 thresholdMedium = 5 [ default = 200 ];
+            optional int32 thresholdHigh = 6 [ default = 500 ];
         }
 
 

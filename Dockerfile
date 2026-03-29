@@ -23,6 +23,12 @@ RUN cd firmware/ && \
     make proto && \
     platformio run
 
+# build webapp
+RUN cd web/app && \
+    npm i && \
+    npm run build && \
+    ls build
+
 # clean working directory
 RUN rm -rf ./*
 

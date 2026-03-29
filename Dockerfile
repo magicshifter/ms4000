@@ -24,10 +24,7 @@ RUN cd firmware/ && \
     platformio run
 
 # build webapp
-RUN cd web/app && \
-    npm i && \
-    npm run build && \
-    ls build
+RUN cd web/app && make
 
 # clean working directory
 RUN rm -rf ./*

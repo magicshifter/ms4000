@@ -1,8 +1,0 @@
-/home/ibi/Documents/Development/MagicShifter/MS3000/MS3000-Firmware/Tools/nanopb/build/CMakeFiles/generate_nanopb_pb2.py.dir
-/home/ibi/Documents/Development/MagicShifter/MS3000/MS3000-Firmware/Tools/nanopb/build/CMakeFiles/protobuf-nanopb-static.dir
-/home/ibi/Documents/Development/MagicShifter/MS3000/MS3000-Firmware/Tools/nanopb/build/CMakeFiles/edit_cache.dir
-/home/ibi/Documents/Development/MagicShifter/MS3000/MS3000-Firmware/Tools/nanopb/build/CMakeFiles/rebuild_cache.dir
-/home/ibi/Documents/Development/MagicShifter/MS3000/MS3000-Firmware/Tools/nanopb/build/CMakeFiles/list_install_components.dir
-/home/ibi/Documents/Development/MagicShifter/MS3000/MS3000-Firmware/Tools/nanopb/build/CMakeFiles/install.dir
-/home/ibi/Documents/Development/MagicShifter/MS3000/MS3000-Firmware/Tools/nanopb/build/CMakeFiles/install/local.dir
-/home/ibi/Documents/Development/MagicShifter/MS3000/MS3000-Firmware/Tools/nanopb/build/CMakeFiles/install/strip.dir

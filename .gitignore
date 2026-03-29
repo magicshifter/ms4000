@@ -59,3 +59,4 @@ firmware/src/MS4.pb
 firmware/src/MS4.pb.c
 firmware/src/MS4.pb.h
 
+tools/nanopb/build

@@ -11,7 +11,7 @@ This is a mono-repo.. This repository contains the Magicshifter OS, built with p
 
 ## Dependencies
  * remember to read the Makefile
- * `make pio-deps` can get you started... don't forget to see the 'copy-libs' target, too: nanopb is generated from our MS3000.proto file
+ * `make pio-deps` can get you started... don't forget to see the 'copy-libs' target, too: nanopb is generated from our MS4.proto file
  * default make target copies libraries (copy-libs) that are auto-generated from the protobuffer target, into lib/nanopb
 
 ## Example set up for Ubuntu:

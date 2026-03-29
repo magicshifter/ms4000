@@ -11,7 +11,7 @@ var xxx = {};
 
 export function getProtocolBuffersPromise() {
   var promise = new Promise(function(resolve, reject) {
-    protobuf.load(process.env.PUBLIC_URL + "MS3000.proto", function (err, root) {
+    protobuf.load(process.env.PUBLIC_URL + "MS4.proto", function (err, root) {
       if (err) {
         reject(Error(err));
       }

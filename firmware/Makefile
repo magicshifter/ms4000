@@ -2,8 +2,8 @@ SHELL := /bin/bash
 
 MS4_PYTHON := $(shell which python3)
 
-MS4_FLASH_BAUD=921600
 MS4_FLASH_BAUD=57600
+MS4_FLASH_BAUD=921600
 
 #linux
 MS4_PORT=/dev/ttyUSB0

@@ -1,16 +1,48 @@
 MS_PORT ?= /dev/ttyUSB0
 BUILDER_NAME ?= ms4000-builder
+PWD := $(shell pwd)
+USER := $(shell id -u)
+GROUP := $(shell id -g)
 
 MS4_PYTHON := $(shell which python3)
 
-builder: 
+builder:
 	docker build -t $(BUILDER_NAME) .
 
 builder-burn:
-	docker run --device /dev/ttyUSB0 -v $(shell pwd):/usr/local/ms4000-builder $(BUILDER_NAME) sh -c "make tools && cd firmware && make clean && make proto && make" 
+	docker run 	--device /dev/ttyUSB0 \
+			-v $(PWD):/home/builder/workspace \
+			--user $(USER):$(GROUP) \
+                        --group-add dialout \
+                        -e PLATFORMIO_CORE_DIR=/home/builder/.platformio \
+			$(BUILDER_NAME) \
+			sh -c "\
+			make tools \
+			&& cd firmware \
+			&& make clean \
+			&& make proto \
+			&& make \
+			"
 
 builder-shell:
-	docker run -it --device /dev/ttyUSB0 -v $(shell pwd):/usr/local/ms4000-builder $(BUILDER_NAME) /bin/bash
+	docker run 	-it \
+			--device /dev/ttyUSB0 \
+			-v $(PWD):/home/builder/workspace \
+			--user $(USER):$(GROUP) \
+			--group-add dialout \
+			-e PLATFORMIO_CORE_DIR=/home/builder/.platformio \
+			$(BUILDER_NAME) \
+			/bin/bash
+
+builder-test:
+	docker run 	-it \
+			--device /dev/ttyUSB0 \
+			-v $(PWD):/home/builder/workspace \
+			--user $(USER):$(GROUP) \
+			--group-add dialout \
+			$(BUILDER_NAME) \
+			/bin/bash
+
 
 reqs-debian:	install-python-venv new-python-environment python-requirements
 	sudo apt install -y docker.io docker-compose 

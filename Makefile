@@ -48,10 +48,8 @@ reqs-debian:	install-python-venv new-python-environment python-requirements
 	sudo apt install -y docker.io docker-compose docker-buildx
  
 tools:
-	(\
-		which pio; \
-		make -C tools/esptool-ck\
-	)
+	which pio; \
+	make -C tools/esptool-ck\
 
 factory:
 	make -C tools/factoryFlashing
@@ -68,17 +66,15 @@ new-python-environment:
 	echo "IMPORTANT: please run . .venv_ms4000/bin/activate to use the MS4000-local python environment!"
 
 python-requirements:
-	. .venv_ms4000/bin/activate && ( \
-		echo "Python in-use is: $(MS4_PYTHON)"; \
-		$(MS4_PYTHON) -m pip install -r firmware/requirements.txt;\
-	)
+	echo "Python in-use is: $(MS4_PYTHON)"; \
+	$(MS4_PYTHON) -m pip install -r firmware/requirements.txt;\
 
 activate:
 	. .venv_ms4000/bin/activate && (\
 		which pio \
 	)
 
-python-tooling:	new-python-environment activate python-requirements
+python-tooling:	new-python-environment python-requirements
    
 .PHONY: tools
 

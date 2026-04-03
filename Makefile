@@ -3,6 +3,9 @@ BUILDER_NAME ?= ms4000-builder
 
 MS4_PYTHON := $(shell which python3)
 
+reqs-debian:
+	apt install -y docker.io docker-compose 
+
 builder: 
 	docker build -t $(BUILDER_NAME) .
 

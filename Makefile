@@ -37,7 +37,7 @@ new-python-environment:
 
 python-requirements:
 	( \
-		@echo "Python in-use is: $(MS4_PYTHON)"; \
+		echo "Python in-use is: $(MS4_PYTHON)"; \
 		$(MS4_PYTHON) -m pip install -r firmware/requirements.txt;\
 	)
 

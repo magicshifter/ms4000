@@ -16,7 +16,7 @@ let shifterState = {
     current: "Sockets work",
     light: {
       name: "Am Anfang war das Licht",
-      subMode: protobufs.MS3KG.Modes.Light.LightMode.NORMAL,
+      subMode: protobufs.MS4.Modes.Light.LightMode.NORMAL,
       color: {
         R: 100, G: 200, B: 300
       }

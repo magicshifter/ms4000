@@ -178,14 +178,14 @@ export const configUpload = () => (dispatch, getState) => {
   console.log("configUpload", state)
 
   const testObj = state.ms3000.shifterState
-  var check = pb.MS3KG.verify(testObj);
+  var check = pb.MS4.verify(testObj);
 
   if (check) {
     console.warn("buffer verify error, corrupt?",  check)
     //alert("buffer verify error, corrupt? " + check)
   }
 
-  const bufferU8 = pb.MS3KG.encode(testObj).finish()
+  const bufferU8 = pb.MS4.encode(testObj).finish()
   const funkyStr = String.fromCharCode.apply(null, bufferU8)
   const b64encoded = btoa(funkyStr);
 
@@ -235,9 +235,9 @@ export const configDownload = () => (dispatch, getState) => {
       console.log("u8", u8a)
 
       try {
-        const shifterState = pb.MS3KG.decode(u8a);
+        const shifterState = pb.MS4.decode(u8a);
 
-        var object = pb.MS3KG.toObject(shifterState, {
+        var object = pb.MS4.toObject(shifterState, {
           longs: undefined,
           enums: undefined,
           bytes: undefined,

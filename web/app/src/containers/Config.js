@@ -48,17 +48,17 @@ class Config extends Component {
   }
 
   handleTestBuffer = e => {
-    console.log("create", pb.MS3KG.create())
+    console.log("create", pb.MS4.create())
     const {shifterState } = this.props
 
     const testObj = shifterState
-    var check = pb.MS3KG.verify(testObj);
+    var check = pb.MS4.verify(testObj);
     console.log("verified:", check, testObj)
 
-    var bufferU8 = pb.MS3KG.encode(testObj).finish()
+    var bufferU8 = pb.MS4.encode(testObj).finish()
 
     //dumpU8(bufferU8)
-    const decodedObj = pb.MS3KG.decode(bufferU8);
+    const decodedObj = pb.MS4.decode(bufferU8);
 
     console.log("after decoding:", decodedObj, bufferU8)
   }
@@ -119,7 +119,7 @@ class Config extends Component {
               fast sync: <input ref="fastSync" type="checkbox" defaultChecked={true} />
             </div>
 
-            <AutoInterface type={protobufs.MS3KG}
+            <AutoInterface type={protobufs.MS4}
                            onChange={this.onChangeAutoInterface}
                            value={shifterState}
                            legend="MS3000 State"

@@ -1,11 +1,7 @@
 import protobuf from 'protobufjs'
-//import ms3kg from '../proto-generated/ms3kg'
 
 
 var xxx = {};
-
-//console.warn("SDFsdfsdf", ms3kg)
-
 
 //console.log("test hack", protobufs, protobufs.test)
 
@@ -17,7 +13,7 @@ export function getProtocolBuffersPromise() {
       }
       else {
         // Obtain a message type
-        xxx.MS3KG = root.lookupType("MS3KG");
+        xxx.MS4 = root.lookupType("MS4");
         xxx.root = root
 
         console.log("stage2", xxx)

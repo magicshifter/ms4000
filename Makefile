@@ -4,7 +4,8 @@ PWD := $(shell pwd)
 USER := $(shell id -u)
 GROUP := $(shell id -g)
 
-MS4_PYTHON := $(shell which python3)
+SYS_PYTHON := $(shell which python3)
+MS4_PYTHON = .venv_ms4000/bin/python3
 
 builder:
 	docker build -t $(BUILDER_NAME) .
@@ -45,7 +46,7 @@ builder-test:
 
 
 reqs-debian:	install-python-venv new-python-environment python-requirements
-	sudo apt install -y docker.io docker-compose docker-buildx
+	-apt install -y docker.io docker-compose docker-buildx
  
 tools:
 	which pio; \
@@ -58,15 +59,16 @@ factory:
 # please create and use your own local python .venv with these targets:
 #
 install-python-venv:
-	sudo apt install -y python3-venv
+	-apt install -y python3-venv
 
-new-python-environment:
+new-python-environment:	install-python-venv
 	rm -rf .venv_ms4000
-	$(MS4_PYTHON) -m venv .venv_ms4000
+	$(SYS_PYTHON) -m venv .venv_ms4000
 	echo "IMPORTANT: please run . .venv_ms4000/bin/activate to use the MS4000-local python environment!"
 
-python-requirements:
-	echo "Python in-use is: $(MS4_PYTHON)"; \
+$(MS4_PYTHON):	new-python-environment
+
+python-requirements: $(MS4_PYTHON)
 	$(MS4_PYTHON) -m pip install -r firmware/requirements.txt;\
 
 activate:
@@ -74,8 +76,6 @@ activate:
 		which pio \
 	)
 
-python-tooling:	new-python-environment python-requirements
-   
 .PHONY: tools
 
 all:	python-tooling tools builder factory

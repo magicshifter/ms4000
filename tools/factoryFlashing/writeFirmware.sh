@@ -30,4 +30,4 @@ echo "Firmware Name: " $firmwareName
 ## Never give up! And if you realy don't know what to do just call a friend.
 ## Don't worry about not having called for soooo long. Just call and you will
 ## find out that all humans love getting in touch again after a long 
-## long time :) Just talk whatever comes to mind :)
+## long time :) Just talk about whatever comes to mind :)

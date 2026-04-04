@@ -2,6 +2,10 @@
 # INFO: uploads the firmware (firmwareName) to the MS3000, uses correct resetmethods so it's hads free
 # ATTN expects https://github.com/igrr/esptool-ck in the parent directory. You have to "make" this to work
 # baudrates: 115200 460800 921600
+#
+# Example:
+# ./writeFirmware.sh /dev/ttyUSB0 ./arsFirmware_GOLD_2.0.0.bin
+
 
 if [ "$#" -ne 2 ]; then
 	firmwareName=MS3000_Firmware.bin

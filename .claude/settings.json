@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make:*)",
+      "Bash(cmake:*)",
+      "Bash(bear:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(clang-format:*)",
+      "Bash(clang-tidy:*)",
+      "Bash(cppcheck:*)"
+    ],
+    "deny": [
+      "Bash(openocd:*)",
+      "Bash(st-flash:*)",
+      "Bash(JLinkExe:*)",
+      "Bash(arm-none-eabi-gdb:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

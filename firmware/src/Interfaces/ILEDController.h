@@ -76,6 +76,39 @@ public:
      * @param buffer Source buffer to load LED state from
      */
     virtual void loadBuffer(uint8_t *buffer) = 0;
+
+    /**
+     * @brief Set LED color with default brightness
+     *
+     * Convenience overload that uses the global brightness setting.
+     *
+     * @param index LED index
+     * @param r Red value
+     * @param g Green value
+     * @param b Blue value
+     */
+    virtual void setLED(int index, uint8_t r, uint8_t g, uint8_t b) = 0;
+
+    /**
+     * @brief Set all LEDs to same value for a specific color channel
+     *
+     * Used for RGB scanner effects.
+     *
+     * @param channel Color channel (0=R, 1=G, 2=B)
+     * @param value Value for that channel (0-255)
+     */
+    virtual void setAllChannel(int channel, uint8_t value) = 0;
+
+    /**
+     * @brief Set a specific channel of a specific LED
+     *
+     * Used for RGB scanner effects.
+     *
+     * @param index LED index
+     * @param channel Color channel (0=R, 1=G, 2=B)
+     * @param value Value for that channel (0-255)
+     */
+    virtual void setChannel(int index, int channel, uint8_t value) = 0;
 };
 
 #endif // ILED_CONTROLLER_H

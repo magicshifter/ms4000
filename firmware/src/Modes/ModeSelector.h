@@ -16,6 +16,9 @@ class ModeSelectorMode:public MagicShifterBaseMode {
   public:
 
 	void setText(const char *label) {
+		// Note: Still uses msGlobals for font/bitmap data (not hardware-dependent)
+		extern MagicShifterGlobals msGlobals;
+
 		// MSColor aRED = { 0xff, 0x00, 0x00 };
 		MSColor aWhite = { 0xFF, 0xFF, 0xFF };
 		Coordinate_s tPos;
@@ -31,6 +34,8 @@ class ModeSelectorMode:public MagicShifterBaseMode {
 	}
 
 	virtual void start() {
+		// Note: Still uses msGlobals for mode list and UI state (not hardware-dependent)
+		extern MagicShifterGlobals msGlobals;
 
 		_currentMode = msGlobals.ui.currentMode;
 
@@ -44,8 +49,9 @@ class ModeSelectorMode:public MagicShifterBaseMode {
 	}
 
 	void setCurrentMode(uint32_t idx) {
+		extern MagicShifterGlobals msGlobals;
 
-		if (idx > msGlobals.ggModeList.size()) 
+		if (idx > msGlobals.ggModeList.size())
 				idx = msGlobals.ggModeList.size() - 1;
 
 		if (idx < 0) {
@@ -55,39 +61,47 @@ class ModeSelectorMode:public MagicShifterBaseMode {
 		if (idx >= msGlobals.ggModeList.size()) {
 			idx = 0;
 		}
-		
+
 		_currentMode = idx;
 
 		setText(msGlobals.ggModeList[_currentMode]->modeName.c_str());
 	}
 
-// step through a frame of the mode 
+// step through a frame of the mode
 	int select() {
+		if (!hasContext()) return -1;
+
 		uint _index = _currentMode;
 		uint _posIdx = _index;
 
+		auto& buttons = context->getButtons();
+		auto& leds = context->getLEDs();
+		uint8_t brightness = context->getBrightness();
+
 		// button handling
-		if (msSystem.msButtons.msBtnPwrHit) {
+		if (buttons.isPowerButtonPressed()) {
 			// blink selected mode 4 times
 			for (byte i = 0; i < 4; i++) {
-				msSystem.msLEDs.setLED(_posIdx, 255, 255, 255,
-									   msGlobals.ggBrightness);
-				msSystem.msLEDs.updateLEDs();
+				leds.setLED(_posIdx, 255, 255, 255, brightness);
+				leds.updateLEDs();
 				delay(50);
-				msSystem.msLEDs.setLED(_posIdx, 0, 0, 0);
-				msSystem.msLEDs.updateLEDs();
+				leds.setLED(_posIdx, 0, 0, 0);
+				leds.updateLEDs();
 				delay(50);
 			}
 			return _index;
 		}
 		// cycle through the texts ..
-		if (msSystem.msButtons.msBtnAHit) {
+		if (buttons.isButtonAPressed()) {
+			// Note: Direct button flag clearing still needed until button API is enhanced
+			extern MagicShifterSystem msSystem;
 			msSystem.msButtons.msBtnAHit = false;	// !J! todo: button callbacks
 			_currentMode--;
 			setCurrentMode(_currentMode);
 		}
 		// cycle through the texts ..
-		if (msSystem.msButtons.msBtnBHit) {
+		if (buttons.isButtonBPressed()) {
+			extern MagicShifterSystem msSystem;
 			msSystem.msButtons.msBtnBHit = false;	// !J! todo: button callbacks
 			_currentMode++;
 			setCurrentMode(_currentMode);
@@ -104,14 +118,13 @@ class ModeSelectorMode:public MagicShifterBaseMode {
 
 			for (byte j = 0; j < 16; j++) {
 				if (j == _posIdx) {
-					msSystem.msLEDs.setLED(j, r, g, b,
-										   msGlobals.ggBrightness);
+					leds.setLED(j, r, g, b, brightness);
 				} else {
-					msSystem.msLEDs.setLED(j, 0, 0, 0, msGlobals.ggBrightness);
+					leds.setLED(j, 0, 0, 0, brightness);
 				}
 			}
 
-			msSystem.msLEDs.updateLEDs();
+			leds.updateLEDs();
 		}
 
 		return -1;

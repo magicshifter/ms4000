@@ -38,11 +38,14 @@ public:
 
     void setLED(int index, uint8_t r, uint8_t g, uint8_t b,
                uint8_t brightness) override;
+    void setLED(int index, uint8_t r, uint8_t g, uint8_t b) override;
     void fillLEDs(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness) override;
     void updateLEDs() override;
     void fastClear() override;
     void saveBuffer(uint8_t *buffer) override;
     void loadBuffer(uint8_t *buffer) override;
+    void setAllChannel(int channel, uint8_t value) override;
+    void setChannel(int index, int channel, uint8_t value) override;
 };
 
 /**
@@ -178,5 +181,107 @@ public:
     ILogger &getLogger() override { return loggerAdapter; }
     bool requestModeChange(int modeIndex) override;
 };
+
+// ============================================================================
+// Inline Implementations
+// ============================================================================
+
+// LED Controller
+inline LEDControllerAdapter::LEDControllerAdapter(class MagicShifterLEDs &ledsRef) : leds(ledsRef) {}
+
+inline void LEDControllerAdapter::setLED(int index, uint8_t r, uint8_t g, uint8_t b, uint8_t brightness) {
+    leds.setLED(index, r, g, b, brightness);
+}
+
+inline void LEDControllerAdapter::setLED(int index, uint8_t r, uint8_t g, uint8_t b) {
+    leds.setLED(index, r, g, b);
+}
+
+inline void LEDControllerAdapter::fillLEDs(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness) {
+    leds.fillLEDs(r, g, b, brightness);
+}
+
+inline void LEDControllerAdapter::updateLEDs() {
+    leds.updateLEDs();
+}
+
+inline void LEDControllerAdapter::fastClear() {
+    leds.fastClear();
+}
+
+inline void LEDControllerAdapter::saveBuffer(uint8_t *buffer) {
+    leds.saveBuffer(buffer);
+}
+
+inline void LEDControllerAdapter::loadBuffer(uint8_t *buffer) {
+    leds.loadBuffer(buffer);
+}
+
+inline void LEDControllerAdapter::setAllChannel(int channel, uint8_t value) {
+    leds.setAllChannel(channel, value);
+}
+
+inline void LEDControllerAdapter::setChannel(int index, int channel, uint8_t value) {
+    leds.setChannel(index, channel, value);
+}
+
+// Button Input
+inline ButtonInputAdapter::ButtonInputAdapter(class MagicShifterButtons &buttonsRef) : buttons(buttonsRef) {}
+
+inline bool ButtonInputAdapter::isButtonAPressed() { return buttons.msBtnAHit; }
+inline bool ButtonInputAdapter::isButtonALongPressed() { return buttons.msBtnALongHit; }
+inline bool ButtonInputAdapter::isButtonADoublePressed() { return buttons.msBtnADoubleHit; }
+inline bool ButtonInputAdapter::isButtonBPressed() { return buttons.msBtnBHit; }
+inline bool ButtonInputAdapter::isButtonBLongPressed() { return buttons.msBtnBLongHit; }
+inline bool ButtonInputAdapter::isButtonBDoublePressed() { return buttons.msBtnBDoubleHit; }
+inline bool ButtonInputAdapter::isPowerButtonPressed() { return buttons.msBtnPwrHit; }
+inline bool ButtonInputAdapter::isPowerButtonLongPressed() { return buttons.msBtnPwrLongHit; }
+inline void ButtonInputAdapter::clearAllEvents() { buttons.resetButtons(); }
+inline bool ButtonInputAdapter::isAnyButtonActive() { return buttons.msBtnActive; }
+
+// Sensor Input
+inline SensorInputAdapter::SensorInputAdapter(MagicShifterGlobals &globalsRef) : globals(globalsRef) {}
+
+inline void SensorInputAdapter::readAcceleration(float *destination) {
+    destination[0] = globals.ggAccel[0];
+    destination[1] = globals.ggAccel[1];
+    destination[2] = globals.ggAccel[2];
+}
+
+inline void SensorInputAdapter::readMagnetometer(int *destination) {
+    destination[0] = globals.ggMagnet[0];
+    destination[1] = globals.ggMagnet[1];
+    destination[2] = globals.ggMagnet[2];
+}
+
+inline float SensorInputAdapter::getAccelX() { return globals.ggAccel[0]; }
+inline float SensorInputAdapter::getAccelY() { return globals.ggAccel[1]; }
+inline float SensorInputAdapter::getAccelZ() { return globals.ggAccel[2]; }
+inline bool SensorInputAdapter::isSensorAvailable() { return globals.ggFault != FAULT_NO_ACCELEROMETER; }
+
+// Logger
+inline SystemLoggerAdapter::SystemLoggerAdapter(MagicShifterSystem &systemRef) : system(systemRef) {}
+
+inline void SystemLoggerAdapter::log(const char *message) { system.slog(message); }
+inline void SystemLoggerAdapter::logln(const char *message) { system.slogln(message); }
+inline void SystemLoggerAdapter::error(const char *message) { system.slogln(String("ERROR: ") + String(message)); }
+inline void SystemLoggerAdapter::warning(const char *message) { system.slogln(String("WARNING: ") + String(message)); }
+inline void SystemLoggerAdapter::debug(const char *message) { system.slogln(String("DEBUG: ") + String(message)); }
+
+// Production Mode Context
+inline ProductionModeContext::ProductionModeContext(MagicShifterSystem &sysRef, MagicShifterGlobals &globalsRef)
+    : system(sysRef), globals(globalsRef),
+      ledAdapter(sysRef.msLEDs),
+      buttonAdapter(sysRef.msButtons),
+      sensorAdapter(globalsRef),
+      loggerAdapter(sysRef)
+{}
+
+inline uint8_t ProductionModeContext::getBrightness() const { return globals.ggBrightness; }
+inline void ProductionModeContext::setBrightness(uint8_t brightness) { globals.ggBrightness = brightness; }
+inline uint32_t ProductionModeContext::getCurrentMicros() const { return globals.ggCurrentMicros; }
+inline uint32_t ProductionModeContext::getCurrentMillis() const { return globals.ggCurrentMillis; }
+inline uint32_t ProductionModeContext::getDeltaMicros() const { return globals.ggCurrentMicros - globals.ggLastMicros; }
+inline bool ProductionModeContext::requestModeChange(int modeIndex) { return false; }  // Not implemented
 
 #endif // PRODUCTION_MODE_CONTEXT_H

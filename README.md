@@ -1,4 +1,4 @@
-## MS4000 - the return of MagicShifter (not -3000)!
+## MS4000 - the return of MagicShifter (fully compatible with the MagicShifter 3000 hardware)!
 
 This is the source code for the MS4000 - the next-generation version of the MagicShifter Light Synthesizer!  (http://magicshifter.net/)
 

@@ -1,24 +1,38 @@
 //
-// Accelerometer modules - written specifically for MMA8452
+// Accelerometer modules - written for MMA8452/FXOS8700CQ
 //
-#include <Wire.h>				// Used for I2C
+#include "../HAL/hal_i2c.h"
 #include <math.h>
-#include <Wire.h>				// Used for I2C
 
-//Define a few of the registers that we will be accessing on the MMA8452
-#define OUT_X_MSB 0x01
-#define MAG_REG 0x07
-#define XYZ_DATA_CFG  0x0E
-#define WHO_AM_I   0x0D
-#define CTRL_REG1  0x2A
-#define MAGNETOMETER_REGISTER 0x33
+/**
+ * @brief Legacy register name aliases for backward compatibility
+ * These map to the standardized FXOS_REG_* names defined in hal_i2c.h
+ */
+#define OUT_X_MSB FXOS_REG_OUT_X_MSB
+#define MAG_REG FXOS_REG_MAG_STATUS
+#define XYZ_DATA_CFG FXOS_REG_XYZ_DATA_CFG
+#define WHO_AM_I FXOS_REG_WHO_AM_I
+#define CTRL_REG1 FXOS_REG_CTRL_REG1
+#define MAGNETOMETER_REGISTER FXOS_REG_MAG_DATA_START
 
-#define GSCALE 8				// Sets full-scale range to +/-2, 4, or 8g. Used to calc real g values.
+/**
+ * @brief Accelerometer full-scale range setting
+ * Sets full-scale range to +/-2, 4, or 8g. Used to calculate real g values.
+ */
+#define GSCALE 8
 
-#define PIN_I2C_DATA 5			// 5 //blau // labeled 5 on esp12E!!!
-#define PIN_I2C_CLOCK 4			//lila
+/**
+ * @brief I2C pin assignments (moved to BoardConfig in future)
+ * PIN_I2C_DATA: GPIO5 (D1 on NodeMCU) - blue wire
+ * PIN_I2C_CLOCK: GPIO4 (D2 on NodeMCU) - purple wire
+ */
+#define PIN_I2C_DATA 5
+#define PIN_I2C_CLOCK 4
 
-// !J! todo: confirm axis indices
+/**
+ * @brief Accelerometer axis indices (confirmed via hardware testing)
+ * Coordinate system: Right-handed, X=forward, Y=right, Z=down
+ */
 #define XAXIS 0
 #define YAXIS 1
 #define ZAXIS 2
@@ -49,73 +63,98 @@ class MagicShifterAccelerometer {
 			msGlobals.ggAccel[i] = (float) msGlobals.ggAccelCount[i] / ((1 << 12) / (2 * GSCALE));	// get actual g value, this depends on scale being set
 		}
 #endif
-	} void initI2C() {
-		//Wire.pins(PIN_I2C_DATA, PIN_I2C_CLOCK);
-		Wire.begin(PIN_I2C_DATA, PIN_I2C_CLOCK);	//Join the bus as a master
-		Wire.setClock(500000);	// crashes if > 200000
+	}
 
-
+	/**
+	 * @brief Initialize I2C bus for sensor communication
+	 * Uses HAL layer for standardized I2C initialization.
+	 * Clock rate: 500kHz (max safe for ESP8266)
+	 */
+	void initI2C()
+	{
+		hal_i2c_init(PIN_I2C_DATA, PIN_I2C_CLOCK, 500000);
 	}
 
 
 #ifdef CONFIG_ENABLE_ACCEL
-	// Read bytesToRead sequentially, starting at addressToRead into the dest byte array
-	void readRegisters(byte addressToRead, int bytesToRead, byte * dest) {
-		Wire.beginTransmission(MMA8452_ADDRESS);
-		Wire.write(addressToRead);
-		Wire.endTransmission(false);	//endTransmission but keep the connection active
+	/**
+	 * @brief Read multiple bytes sequentially from sensor registers
+	 * Uses HAL I2C layer with error handling.
+	 *
+	 * @param addressToRead Starting register address
+	 * @param bytesToRead Number of bytes to read
+	 * @param dest Destination buffer
+	 */
+	void readRegisters(byte addressToRead, int bytesToRead, byte *dest)
+	{
+		hal_status_t status = hal_i2c_read_registers(MMA8452_ADDRESS,
+		                                             addressToRead,
+		                                             dest,
+		                                             bytesToRead);
 
-		//delay(0);
-
-		Wire.requestFrom(MMA8452_ADDRESS, bytesToRead);	//Ask for bytes, once done, bus is released by default
-
-		if (Wire.available() < bytesToRead) {
+		if (status != HAL_OK)
+		{
 			Serial.println("Sensor Package unavailable!!");
 			msGlobals.ggFault = FAULT_NO_ACCELEROMETER;
 			delay(10);
-		};						//Hang out until we get the # of bytes we expect
-
-		for (int x = 0; x < bytesToRead; x++) {
-			dest[x] = Wire.read();
-			yield();
 		}
 	}
 
-	// Read a single byte from addressToRead and return it as a byte
-	byte readRegister(byte addressToRead) {
-		Wire.beginTransmission(MMA8452_ADDRESS);
-		Wire.write(addressToRead);
-		Wire.endTransmission(false);	//endTransmission but keep the connection active
+	/**
+	 * @brief Read a single byte from sensor register
+	 * Uses HAL I2C layer with error handling.
+	 *
+	 * @param addressToRead Register address
+	 * @return Byte value read from register
+	 */
+	byte readRegister(byte addressToRead)
+	{
+		byte data = 0;
+		hal_status_t status = hal_i2c_read_register(MMA8452_ADDRESS, addressToRead, &data);
 
-		Wire.requestFrom(MMA8452_ADDRESS, 1);	//Ask for 1 byte, once done, bus is released by default
-
-		if (!Wire.available()) {
+		if (status != HAL_OK)
+		{
 			Serial.println("Sensor Package unavailable!!");
 			msGlobals.ggFault = FAULT_NO_ACCELEROMETER;
 			delay(10);
-		};						//Wait for the data to come back
-		return Wire.read();		//Return this one byte
+		}
+
+		return data;
 	}
 
-	// Writes a single byte (dataToWrite) into addressToWrite
-	void writeRegister(byte addressToWrite, byte dataToWrite) {
-		Wire.beginTransmission(MMA8452_ADDRESS);
-		Wire.write(addressToWrite);
-		Wire.write(dataToWrite);
-		Wire.endTransmission();	//Stop transmitting
+	/**
+	 * @brief Write a single byte to sensor register
+	 * Uses HAL I2C layer.
+	 *
+	 * @param addressToWrite Register address
+	 * @param dataToWrite Byte value to write
+	 */
+	void writeRegister(byte addressToWrite, byte dataToWrite)
+	{
+		hal_i2c_write_register(MMA8452_ADDRESS, addressToWrite, dataToWrite);
 	}
 
 
-	// Sets the MMA8452 to standby mode. It must be in standby to change most register settings
-	void MMA8452Standby() {
+	/**
+	 * @brief Set sensor to standby mode
+	 * Must be in standby to change most register settings.
+	 */
+	void MMA8452Standby()
+	{
 		byte c = readRegister(CTRL_REG1);
-		writeRegister(CTRL_REG1, c & ~(0x01));	//Clear the active bit to go into standby
+		// Clear the active bit to go into standby
+		writeRegister(CTRL_REG1, c & ~FXOS_CTRL_REG1_ACTIVE);
 	}
 
-	// Sets the MMA8452 to active mode. Needs to be in this mode to output data
-	void MMA8452Active() {
+	/**
+	 * @brief Set sensor to active mode
+	 * Sensor must be in active mode to output data.
+	 */
+	void MMA8452Active()
+	{
 		byte c = readRegister(CTRL_REG1);
-		writeRegister(CTRL_REG1, c | 0x01);	//Set the active bit to begin detection
+		// Set the active bit to begin detection
+		writeRegister(CTRL_REG1, c | FXOS_CTRL_REG1_ACTIVE);
 	}
 
 	void readMagnetometerData(int *destination) {
@@ -185,26 +224,30 @@ class MagicShifterAccelerometer {
 			/* code */
 		} while (0);			//while(!success);
 
-		// magnetometer
+		// Magnetometer configuration
 		bool autoCalibrateMagnetometer = true;
-		if (autoCalibrateMagnetometer) {
-			writeRegister(0x2B, 0x40);	// Soft reset
-			delay(1);			// Wait for reset
-			// Set threshold. 1000 counts = 100.0uT
+		if (autoCalibrateMagnetometer)
+		{
+			// Soft reset the sensor
+			writeRegister(FXOS_REG_CTRL_REG2, FXOS_CTRL_REG2_RST);
+			delay(1); // Wait for reset to complete
+
+			// Set magnetometer vector magnitude threshold
+			// 1000 counts = 100.0uT
 			int magThreshold = 1000;
-			writeRegister(0x6A, ((0x80 | magThreshold) & 0xFF));
-			writeRegister(0x6B, magThreshold >> 8);
+			writeRegister(FXOS_REG_M_VECM_THS_LSB, ((0x80 | magThreshold) & 0xFF));
+			writeRegister(FXOS_REG_M_VECM_THS_MSB, magThreshold >> 8);
 
-			// M_VECM_CNT = 1 * 20ms  = 20ms
-			// ! - steps double in hybrid mode
-			writeRegister(0x6C, 0x01);
+			// Set magnetometer sample count: 1 * 20ms = 20ms
+			// Note: Sample rate doubles in hybrid mode
+			writeRegister(FXOS_REG_M_VECM_CNT, 0x01);
 
-			// M_VECM_CFG
-			// m_vecm_ele = 1 => event latching enabled
-			// m_vecm_initm = 1 => use M_VECM_INITX/Y/Z as initial reference
-			// m_vecm_updm = 1 => do not update initial reference
-			// m_vecm_en = 1 => enable magnetometer vector magnitude detection feature
-			writeRegister(0x69, 0x7B);
+			// Configure magnetometer vector magnitude detection:
+			// - Event latching enabled (m_vecm_ele=1)
+			// - Use initial reference values (m_vecm_initm=1)
+			// - Do not update reference (m_vecm_updm=1)
+			// - Enable detection feature (m_vecm_en=1)
+			writeRegister(FXOS_REG_M_VECM_CFG, FXOS_M_VECM_CFG_INIT_MODE);
 		}
 
 		MMA8452Standby();		// Must be in standby to change registers
@@ -216,12 +259,14 @@ class MagicShifterAccelerometer {
 		writeRegister(XYZ_DATA_CFG, fsr);
 		//The default data rate is 800Hz and we don't modify it in this example code
 
-		// more magnetometer ..
-		// M_CTRL_REG1: Hybrid mode, OS = 32, Auto Cal when set
-		writeRegister(0x5B,
-					  (autoCalibrateMagnetometer ? 0x80 : 0x00) | 0x1F);
-		// M_CTRL_REG2: Hybrid auto increment, maxmin disable threshold
-		writeRegister(0x5C, 0x20);
+		// Configure magnetometer control registers
+		// M_CTRL_REG1: Hybrid mode with oversampling ratio = 32
+		// Auto-calibration enabled if autoCalibrateMagnetometer is true
+		writeRegister(FXOS_REG_M_CTRL_REG1,
+		              (autoCalibrateMagnetometer ? FXOS_M_CTRL_REG1_ACAL : 0x00) |
+		                  FXOS_M_CTRL_REG1_HYBRID);
+		// M_CTRL_REG2: Enable hybrid auto-increment mode
+		writeRegister(FXOS_REG_M_CTRL_REG2, FXOS_M_CTRL_REG2_HYBRID);
 
 		MMA8452Active();		// Set to active to start reading
 

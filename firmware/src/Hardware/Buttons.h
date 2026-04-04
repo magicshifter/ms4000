@@ -1,7 +1,15 @@
-// Button code
+/**
+ * @file Buttons.h
+ * @brief Button input handling with debouncing and event detection
+ *
+ * Provides single-click, long-click, and double-click detection
+ * for buttons A, B, and Power using HAL GPIO abstraction.
+ */
 
 #ifndef __BUTTONS_H
 #define __BUTTONS_H
+
+#include "../HAL/hal_gpio.h"
 
 class MagicShifterButtons {
 
@@ -56,11 +64,15 @@ class MagicShifterButtons {
 	}; 
 
 
-	void setup() {
-		// init pin modes
-		pinMode(PIN_BUTTON_A, INPUT);
-		pinMode(PIN_BUTTON_B, INPUT);
-	};
+	/**
+	 * @brief Initialize button GPIO pins
+	 * Configures buttons A and B as inputs using HAL.
+	 */
+	void setup()
+	{
+		hal_gpio_set_mode(PIN_BUTTON_A, HAL_GPIO_MODE_INPUT);
+		hal_gpio_set_mode(PIN_BUTTON_B, HAL_GPIO_MODE_INPUT);
+	}
 
 
 	void resetButtons() {
@@ -77,16 +89,27 @@ class MagicShifterButtons {
 	}
 
 
-	void step() {
+	/**
+	 * @brief Process button state and detect events
+	 * Called every frame to update button states and detect clicks.
+	 * Implements debouncing and long/double-click detection.
+	 */
+	void step()
+	{
 		resetButtons();
 
 		deltaMicros = (msGlobals.ggCurrentMicros - msGlobals.ggLastMicros);
 
-		// handle Buttons:
-		pinMode(PIN_BUTTON_A, INPUT);
-		pinMode(PIN_BUTTON_B, INPUT);
+		// Ensure button pins are configured as inputs
+		hal_gpio_set_mode(PIN_BUTTON_A, HAL_GPIO_MODE_INPUT);
+		hal_gpio_set_mode(PIN_BUTTON_B, HAL_GPIO_MODE_INPUT);
 
-		if (!digitalRead(PIN_BUTTON_A)) {
+		// Read button A state (active low)
+		hal_gpio_state_t btnA_state;
+		hal_gpio_read(PIN_BUTTON_A, &btnA_state);
+
+		if (btnA_state == HAL_GPIO_LOW)
+		{
 			msBtnActive = true;
 
 			if (msBtnAPressTime)
@@ -117,8 +140,12 @@ class MagicShifterButtons {
 			msBtnAPressTime = 0;
 		}
 
-		if (!digitalRead(PIN_BUTTON_B)) {
+		// Read button B state (active low)
+		hal_gpio_state_t btnB_state;
+		hal_gpio_read(PIN_BUTTON_B, &btnB_state);
 
+		if (btnB_state == HAL_GPIO_LOW)
+		{
 			msBtnActive = true;
 
 			if (msBtnBPressTime)

@@ -108,8 +108,9 @@ void setup()
 	msGlobals.ggModeList.push_back(&msSysText);
 	msGlobals.ggModeList.push_back(&msMagicRemote);
 	msGlobals.ggModeList.push_back(&msMagicBeat);
-	msGlobals.ggModeList.push_back(&msMagicBike);
 
+	// needs work ?
+	// msGlobals.ggModeList.push_back(&msMagicBike);
 	// msGlobals.ggModeList.push_back(&msMagicCountdown);
 	// msGlobals.ggModeList.push_back(&msMagicConway);	
 
@@ -119,7 +120,8 @@ void setup()
 	msSystem.slogln("wifi: hostname is:" + WiFi.hostname());
 	msSystem.slogln("wifi: OTA hostname is:" + ArduinoOTA.getHostname());
 
-	//msGlobals.ui.currentMode = 5;
+	// reset settings to mode 0
+	msGlobals.ui.currentMode = 0;
 
 	// if MIDI has been configured, enable the additional MIDI mode(s)
 #ifdef CONFIG_ENABLE_MIDI

@@ -35,15 +35,15 @@ WHITE   = \033[1;37m
 RESET   = \033[0m
 
 define announce
-    @echo -e "$(RED) [MS4000-build] $(CYAN)[$$(date '+%Y-%m-%d %H:%M:%S')] $(1)$(RESET)"
+    @echo "$(RED) [MS4000-build] $(CYAN)[$$(date '+%Y-%m-%d %H:%M:%S')] $(1)$(RESET)"
 endef
 
 define success
-    @echo -e "$(RED) [MS4000-build] $(GREEN)[$$(date '+%Y-%m-%d %H:%M:%S')] ✅ SUCCESS: $(1)$(RESET)"
+    @echo "$(RED) [MS4000-build] $(GREEN)[$$(date '+%Y-%m-%d %H:%M:%S')] ✅ SUCCESS: $(1)$(RESET)"
 endef
 
 define warning
-    @echo -e "$(RED) [MS4000-build] $(YELLOW)[$$(date '+%Y-%m-%d %H:%M:%S')] ⚠️  $(1)$(RESET)"
+    @echo "$(RED) [MS4000-build] $(YELLOW)[$$(date '+%Y-%m-%d %H:%M:%S')] ⚠️  $(1)$(RESET)"
 endef
 
 # =============================================================================
@@ -60,7 +60,13 @@ builder:
 	docker build -t $(BUILDER_NAME) .
 	$(call success,Docker image '$(BUILDER_NAME)' built successfully)
 
-builder-burn:
+builder-clean:
+	$(call announce,🧹  Cleaning Docker image '$(BUILDER_NAME)'...)
+	docker rmi -f $(BUILDER_NAME) 2>/dev/null || true
+	docker image prune -f --filter "label=stage=builder" 2>/dev/null || true
+	$(call success,Docker image '$(BUILDER_NAME)' cleaned successfully)
+
+builder-burn:	builder
 	$(call announce,🔥 Starting Docker build + burn to $(MS4_PORT)...)
 	docker run \
         --device $(MS4_PORT) \
@@ -70,6 +76,8 @@ builder-burn:
         -e PLATFORMIO_CORE_DIR=/home/builder/.platformio \
         $(BUILDER_NAME) \
         sh -c "\
+		make -C tools/esptool-ck clean && \
+		make -C tools/esptool-ck && \
 		make -C firmware clean && \
 		make -C firmware proto && \
 		make -C firmware flash && \

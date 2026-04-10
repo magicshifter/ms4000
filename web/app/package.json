@@ -19,7 +19,6 @@
     "react": "^16.4.1",
     "react-dom": "^16.4.1",
     "react-redux": "^5.0.7",
-    "react-scripts": "^1.1.4",
     "redux": "^4.0.0",
     "redux-act": "^0.4.0",
     "redux-logger": "^3.0.6",
@@ -30,16 +29,22 @@
     "upng-js": "^2.1.0"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
     "babel-cli": "^6.26.0",
+    "jsdom": "^27.0.0",
     "koa": "^2.5.2",
     "koa-socket": "^4.4.0",
-    "socket.io": "^2.1.1"
+    "socket.io": "^2.1.1",
+    "vite": "^7.0.0",
+    "vitest": "^3.0.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject",
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "testServer": "./node_modules/.bin/babel-node src/testServer/index.js",
     "proto": "make -C ../../firmware/ proto",
     "protoDepr": "cp ../../MS4.proto ./public",

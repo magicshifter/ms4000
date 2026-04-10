@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import registerServiceWorker from './registerServiceWorker';
 import {getProtocolBuffersPromise} from './utils/protoBufLoader'
 import {applyMiddleware, createStore} from 'redux'
 import {Provider} from 'react-redux'
@@ -24,7 +23,7 @@ const middleware = []
 //middleware.push(sagaMiddleware)
 
 middleware.push(thunk)
-if (process.env.NODE_ENV !== 'production') {
+if (import.meta.env.DEV) {
   middleware.push(createLogger())
 }
 
@@ -47,6 +46,3 @@ p.then( () => {
     document.getElementById('root')
   )
 });
-
-
-registerServiceWorker();

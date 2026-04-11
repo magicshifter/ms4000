@@ -42,20 +42,20 @@ public:
       msSystem.slogln("dnsServer - captive portal");
       msSystem.dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
       msSystem.dnsServer.start(DNS_PORT, "*", WiFi.localIP());
- 
+
       msSystem.slogln("mDNS - using uniqueSystemName");
 
-      gotmDNSConfig = msSystem.msDNS.begin( 
-						msSystem.Settings.getUniqueSystemName().c_str(), WiFi.localIP());
+      gotmDNSConfig = msSystem.msDNS.begin(
+          msSystem.Settings.getUniqueSystemName().c_str(), WiFi.localIP());
 
-	  if (gotmDNSConfig) {
-		MDNS.addService("http", "tcp", 80);
-	    msSystem.slogln("mDNS started: http://" + String(msSystem.Settings.getUniqueSystemName()));
-	  } else {
-      	msSystem.slogln("mDNS failed to configure - name not set.");
-	  }
+      if (gotmDNSConfig) {
+        MDNS.addService("http", "tcp", 80);
+        msSystem.slogln("mDNS started: http://" +
+                        String(msSystem.Settings.getUniqueSystemName()));
+      } else {
+        msSystem.slogln("mDNS failed to configure - name not set.");
+      }
     }
-
 
 #endif
 

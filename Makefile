@@ -163,7 +163,12 @@ firmware-proto:
 	$(call announce,📡 Generating firmware protobufs...)
 	make -C firmware proto
 
-web:
+web-deps:
+	$(call announce,🌐 Installing web dependencies ...)
+	make -C web/app deps
+	$(call success,Web app built)
+
+web:	web-deps
 	$(call announce,🌐 Building web application...)
 	make -C web/app
 	$(call success,Web app built)

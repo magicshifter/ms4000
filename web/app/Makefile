@@ -9,7 +9,7 @@ build:
 clean:
 	rm -rf dist/*
 
-package:	
+package:
 	rsync -avpz dist/ ../../firmware/data/
 	find ../../firmware/data -name "*.map" -exec rm -rf {} \;
 	find ../../firmware/data -name "*.html" -exec gzip -f {} \;

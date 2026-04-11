@@ -6,15 +6,15 @@
 //
 
 #ifndef _SERIALMIDI_H_
-#define  _SERIALMIDI_H_
+#define _SERIALMIDI_H_
 
 // mode
 void SERIAL_MIDI_init();
 void SERIAL_MIDI_loop();
 
 // i/o
-uint16_t SERIAL_MIDI_Put(uint8_t * data, uint16_t length);
-uint16_t SERIAL_MIDI_Get(uint8_t * data, uint16_t length);
+uint16_t SERIAL_MIDI_Put(uint8_t *data, uint16_t length);
+uint16_t SERIAL_MIDI_Get(uint8_t *data, uint16_t length);
 
 //  events
 void SERIAL_MIDI_Start(miby_this_t a_miby);

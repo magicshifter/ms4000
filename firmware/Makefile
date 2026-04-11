@@ -152,6 +152,8 @@ package-assets:
 
 package:	package-assets
 	$(call announce,📦 Packaging web+firmware assets to data ...)
+	make -C ../web/app clean
+	make -C ../web/app build
 	make -C ../web/app package
 	$(call success,📦 Packaging web+firmware assets to data ...)
 

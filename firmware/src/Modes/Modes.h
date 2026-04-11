@@ -24,7 +24,7 @@ MIDISequence8Mode msMIDISequencer;
 #include "BouncingBall.h"
 #include "MagicBeat.h"
 #include "MagicBike.h"
-#include "MagicConway.h"
+// #include "MagicConway.h"
 #include "MagicCountdown.h"
 #include "MagicLight.h"
 #include "MagicMagnet.h"

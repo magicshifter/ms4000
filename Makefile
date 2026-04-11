@@ -49,16 +49,24 @@ endef
 # =============================================================================
 # Default target (important for CLion)
 # =============================================================================
-all: tools builder assets 
+all: tools builder package
 	$(call success,MS4000 top-level build completed)
 
 # =============================================================================
 # Docker Builder Targets
 # =============================================================================
+
 builder:
 	$(call announce,🔨 Building Docker image '$(BUILDER_NAME)'...)
-	docker build -t $(BUILDER_NAME) .
+	docker build \
+        --build-arg UID=$(USER) \
+        --build-arg GID=$(GROUP) \
+        -t $(BUILDER_NAME) .
 	$(call success,Docker image '$(BUILDER_NAME)' built successfully)
+
+# Optional: force a full rebuild when you really need it
+builder-force:
+	docker build --no-cache -t $(BUILDER_NAME) .
 
 builder-clean:
 	$(call announce,🧹  Cleaning Docker image '$(BUILDER_NAME)'...)
@@ -76,15 +84,17 @@ builder-burn:
         -e PLATFORMIO_CORE_DIR=/home/builder/.platformio \
         $(BUILDER_NAME) \
         sh -c "\
-		make -C tools/esptool-ck clean && \
-		make -C tools/esptool-ck && \
-		make -C firmware clean && \
-		make -C firmware proto && \
-		make -C firmware flash && \
-		make -C web/app deps && \
-		make -C web/app build && \
-		make -C tools/factoryFlashing factory \
-        "
+			make -C tools/esptool-ck clean && \
+			make -C tools/esptool-ck && \
+			make -C firmware clean && \
+			make -C firmware proto && \
+			make -C web/app clean && \
+			make -C web/app deps && \
+			make -C web/app build && \
+			make -C web/app package && \
+			make -C firmware assets && \
+			make -C firmware flash
+		"
 	$(call success,Firmware built and flashed via Docker)
 
 builder-shell:
@@ -171,6 +181,7 @@ web-deps:
 web:	web-deps
 	$(call announce,🌐 Building web application...)
 	make -C web/app
+	make -C web/app package
 	$(call success,Web app built)
 
 web-clean:
@@ -187,8 +198,12 @@ clean:
 	$(call success,Full clean completed)
 
 assets:
-	$(call announce, 📦  Install firmware data/ assets (including web/app bundle))
+	$(call announce, 📦  Create firmware data/ assets (including web/app bundle))
 	make -C firmware/ assets
+
+package:	web assets
+	$(call announce, 📦  Build firmware package (includes web/app bundle plus magicBitmaps, etc.))
+	make -C firmware 
 
 rebuild: clean all
 

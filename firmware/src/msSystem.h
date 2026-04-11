@@ -11,6 +11,8 @@
 #include <ESP8266mDNS.h>
 #include <WiFiClient.h>
 
+#include <DNSServer.h>
+
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
 
 #include <EEPROM.h>
@@ -442,9 +444,11 @@ public:
   MagicShifterLEDs msLEDs;
   MagicShifterEEPROMString msEEPROMs;
   MagicShifterButtons msButtons;
+
+  WiFiManager msWifiManager;
+  DNSServer dnsServer;
   MDNSResponder msDNS;
   ESP8266WebServer msESPServer;
-  WiFiManager msWifiManager;
 
   bool msMIDIActive = true;
   int msFrame = 0;

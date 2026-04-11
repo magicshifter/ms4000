@@ -25,8 +25,8 @@ import {FILESYSTEM_REQUEST_START, FILESYSTEM_REQUEST_SUCCESS} from "../actions/f
 const DEFAULT_STATE = {
   isFetching: false,
   shifterState: {},
-  host: 'http://MS3000-7161.local',
-  //host: 'http://192.168.4.1',
+  //host: 'http://ms3000-288f.local',
+  host: 'http://192.168.4.1',
 
   isUploading: false,
   uploadError: null,

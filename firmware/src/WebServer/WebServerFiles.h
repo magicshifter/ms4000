@@ -71,6 +71,11 @@ void handleNotFound() {
     msSystem.slog("streamfile: " + String(fName + 1));
     streamFile(String(fName + 1));
   } else if (msSystem.msESPServer.uri() != "/upload") {
+
+	String redirectToIP = "http://" + WiFi.softAPIP().toString() + "/";
+	String redirectToHostname = "http://" + msSystem.Settings.getUniqueSystemName() + ".local/";
+
+
     String message = "MS Command Not Found\n\n";
     message += "URI: ";
     message += msSystem.msESPServer.uri();
@@ -80,13 +85,16 @@ void handleNotFound() {
     message += msSystem.msESPServer.args();
     message += "\n";
 
+    msSystem.msESPServer.sendHeader("Location", redirectToIP, true);
+ 
     for (uint8_t i = 0; i < msSystem.msESPServer.args(); i++) {
       message += " " + msSystem.msESPServer.argName(i) + ": " +
                  msSystem.msESPServer.arg(i) + "\n";
     }
 
-    msSystem.msESPServer.send(404, "text/plain", message);
-  } else {
+    msSystem.msESPServer.send(302, "text/plain", message);
+    //msSystem.msESPServer.send(404, "text/plain", message);
+  } else { // upload
     String message = "<html>\
       <head>\
         <meta http-equiv='refresh' content='5'/>\

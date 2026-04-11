@@ -90,6 +90,10 @@ void setup()
 	// start the system UI and event handlers
 	msSystem.setup();
 
+	// Phase 2C: Initialize mode context for dependency injection
+	// This wires IModeContext to all mode instances
+	initializeModeContext();
+
 	// get the web interface started
 	msWebServer.start();
 

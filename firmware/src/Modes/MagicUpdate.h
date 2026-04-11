@@ -12,61 +12,77 @@ public:
 	}
 
 	virtual void start() {
-//		static int xx = 0;
+		if (!hasContext()) return;
+
+		extern MagicShifterSystem msSystem;
+		extern MagicShifterGlobals msGlobals;
+
+		auto& leds = context->getLEDs();
+		auto& logger = context->getLogger();
+		uint8_t brightness = context->getBrightness();
 
 		// set a basic background to start with ..
 		for(int i=0;i<RGB_BUFFER_SIZE;i+=4) {
-			msGlobals.ggRGBLEDBuf[i] = msGlobals.ggBrightness | 0xe0;
+			msGlobals.ggRGBLEDBuf[i] = brightness | 0xe0;
 			msGlobals.ggRGBLEDBuf[i+1] = i * 2;
 			msGlobals.ggRGBLEDBuf[i+2] = 255 - i * 2;
 			msGlobals.ggRGBLEDBuf[i+3] = 128;
 		}
 
-		msSystem.msLEDs.loadBuffer(msGlobals.ggRGBLEDBuf);
-		msSystem.msLEDs.updateLEDs();
+		leds.loadBuffer(msGlobals.ggRGBLEDBuf);
+		leds.updateLEDs();
 
 
-		ArduinoOTA.onStart([]() { 
+		ArduinoOTA.onStart([this]() {
 			// set LED's to start-state:
-			msSystem.slog(" update: start ");
-			msSystem.msLEDs.fillLEDs(0, 64, 0, msGlobals.ggBrightness);
-			msSystem.msLEDs.updateLEDs();
+			if (!hasContext()) return;
+			context->getLogger().log(" update: start ");
+			context->getLEDs().fillLEDs(0, 64, 0, context->getBrightness());
+			context->getLEDs().updateLEDs();
 		});
 
-		ArduinoOTA.onProgress([](int total, int size) {
-
+		ArduinoOTA.onProgress([this](int total, int size) {
+			if (!hasContext()) return;
 			//int percent = total / size;
 
-			msSystem.msLEDs.fillLEDs(0, 64, 0, msGlobals.ggBrightness);
-			msSystem.msLEDs.updateLEDs();
+			context->getLEDs().fillLEDs(0, 64, 0, context->getBrightness());
+			context->getLEDs().updateLEDs();
 		});
 
-		ArduinoOTA.onEnd([]() { 
+		ArduinoOTA.onEnd([this]() {
 			// set LED's to end-state:
-			msSystem.slog(" update: end");
-			msSystem.msLEDs.fillLEDs(128, 32, 64, msGlobals.ggBrightness);
-			msSystem.msLEDs.updateLEDs();
+			if (!hasContext()) return;
+			context->getLogger().log(" update: end");
+			context->getLEDs().fillLEDs(128, 32, 64, context->getBrightness());
+			context->getLEDs().updateLEDs();
 		});
 
-		ArduinoOTA.onError([](ota_error_t error) { 
-			msSystem.slog(" update: error");
-			msSystem.msLEDs.fillLEDs(255, 0, 0, msGlobals.ggBrightness);
-			msSystem.msLEDs.updateLEDs();
+		ArduinoOTA.onError([this](ota_error_t error) {
+			if (!hasContext()) return;
+			context->getLogger().log(" update: error");
+			context->getLEDs().fillLEDs(255, 0, 0, context->getBrightness());
+			context->getLEDs().updateLEDs();
 		});
 
 
 		ArduinoOTA.begin();
 
-		msSystem.slog(" update: start (mode) ");
+		logger.log(" update: start (mode) ");
 
 	}
 
 	virtual void stop(void) {
-		msSystem.slog(" update: stop (mode)");
+		if (!hasContext()) return;
+
+		extern MagicShifterGlobals msGlobals;
+
+		context->getLogger().log(" update: stop (mode)");
+
+		uint8_t brightness = context->getBrightness();
 
 		// set a basic background to start with ..
 		for(int i=0;i<RGB_BUFFER_SIZE;i+=4) {
-			msGlobals.ggRGBLEDBuf[i] = msGlobals.ggBrightness | 0xe0;
+			msGlobals.ggRGBLEDBuf[i] = brightness | 0xe0;
 			msGlobals.ggRGBLEDBuf[i+1] = i * 2;
 			msGlobals.ggRGBLEDBuf[i+2] = 255 - i * 2;
 			msGlobals.ggRGBLEDBuf[i+3] = 128;
@@ -74,13 +90,16 @@ public:
 	}
 
 	virtual bool step(void) {
-		// msSystem.slog(" update: step ");
+		if (!hasContext()) return true;
+
+		extern MagicShifterGlobals msGlobals;
 
 		ArduinoOTA.handle();
 
-		msSystem.msLEDs.loadBuffer(msGlobals.ggRGBLEDBuf);
-		msSystem.msLEDs.updateLEDs();
-		
+		auto& leds = context->getLEDs();
+		leds.loadBuffer(msGlobals.ggRGBLEDBuf);
+		leds.updateLEDs();
+
 		delay(10);
 
 		return true;

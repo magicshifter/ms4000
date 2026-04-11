@@ -28,12 +28,15 @@ public:
 	};
 
 	virtual void start() {
-		modeStartTime = msGlobals.ggCurrentMillis;
+		if (!hasContext()) return;
+		modeStartTime = context->getCurrentMillis();
 		blinkedAt = modeStartTime;
 	};
 
-	// step through a frame of the mode 
+	// step through a frame of the mode
 	virtual bool step() {
+		if (!hasContext()) return true;
+
 		// a) live for 60 seconds, then power off
 		static int LEDidx = 0;
 
@@ -44,25 +47,33 @@ public:
 		// if calculateVoltage(int adValue)
 			// blahblah();
 
+		auto& buttons = context->getButtons();
+		uint32_t currentMillis = context->getCurrentMillis();
+
 		// power down if we have been up for too long (a), or if the user presses a button (b) ..
-		if ( msGlobals.ggCurrentMillis >= (modeStartTime + POWERDOWN_LIVE_TIME) ||
- 			 (msSystem.msButtons.msBtnAHit) || (msSystem.msButtons.msBtnBHit) || (msSystem.msButtons.msBtnPwrHit) ) {
+		if ( currentMillis >= (modeStartTime + POWERDOWN_LIVE_TIME) ||
+ 			 buttons.isButtonAPressed() || buttons.isButtonBPressed() || buttons.isPowerButtonPressed() ) {
+			// Note: powerDown() still requires direct msSystem access for now
+			extern MagicShifterSystem msSystem;
 			msSystem.powerDown();
 		}
 
+		auto& leds = context->getLEDs();
+		uint8_t brightness = context->getBrightness();
+
 		// blink the LED (c)
-		if (msGlobals.ggCurrentMillis < (blinkedAt + BLINK_PERIOD)) {
-			msSystem.msLEDs.setLED(LEDidx, (LEDidx & 1) ? 255 : 0, 0, 0, msGlobals.ggBrightness);
+		if (currentMillis < (blinkedAt + BLINK_PERIOD)) {
+			leds.setLED(LEDidx, (LEDidx & 1) ? 255 : 0, 0, 0, brightness);
 		}
 		else {
-			msSystem.msLEDs.setLED(LEDidx, 0, 0, 0);
+			leds.setLED(LEDidx, 0, 0, 0);
 			LEDidx++;
 			LEDidx %= MAX_LEDS;
-			blinkedAt = msGlobals.ggCurrentMillis;
-			msSystem.slog(String(modeStartTime)); msSystem.slog(":"); msSystem.slogln(String(blinkedAt));
+			blinkedAt = currentMillis;
+			context->getLogger().logln((String(modeStartTime) + ":" + String(blinkedAt)).c_str());
 		}
 
-		msSystem.msLEDs.updateLEDs();
+		leds.updateLEDs();
 
 		return true;
 

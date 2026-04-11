@@ -69,6 +69,7 @@ class MagicShifterGlobals {
 
 };
 
-// #else
-// extern MagicShifterGlobals msGlobals;
+// Extern declaration for global instance (defined in MS3KOS.cpp)
+extern MagicShifterGlobals msGlobals;
+
 #endif

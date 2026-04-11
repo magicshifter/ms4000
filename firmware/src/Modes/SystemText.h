@@ -44,7 +44,9 @@ class SystemTextMode:public MagicShifterBaseMode {
 	}
 
 	void setText(char *label, char *value, MSColor color, char *value2, MSColor color2) {
-	
+		// Note: Uses msGlobals for bitmap data structures (not hardware access)
+		extern MagicShifterGlobals msGlobals;
+
 		Coordinate_s tPos;
 
 		msMagicShakeText.resetTexts();
@@ -72,6 +74,8 @@ class SystemTextMode:public MagicShifterBaseMode {
 	}
 
 	void setLargeText(char *label, char *value, MSColor color) {
+		// Note: Uses msGlobals for bitmap data structures (not hardware access)
+		extern MagicShifterGlobals msGlobals;
 
 		Coordinate_s tPos;
 
@@ -97,6 +101,8 @@ class SystemTextMode:public MagicShifterBaseMode {
 	}
 
 	void start() {
+		extern MagicShifterGlobals msGlobals;
+
 		setText((char *) "SYSTEM", (char *) "VALUES", aBLUE);
 
 		for (int i=0;i<NUM_POWER_MODES;i++){
@@ -118,26 +124,33 @@ class SystemTextMode:public MagicShifterBaseMode {
 
 #define NUM_SYS_TEXTS 9
 
-// step through a frame of the mode 
+// step through a frame of the mode
 	bool step() {
-		
+		if (!hasContext()) return false;
+
+		extern MagicShifterSystem msSystem;
+		extern MagicShifterGlobals msGlobals;
+
+		auto& buttons = context->getButtons();
+		auto& logger = context->getLogger();
+
 		bool isConnectedToAP = (WiFi.status() == WL_CONNECTED);
 		bool isBatteryLow = msSystem.lowBatteryMillis != 0;
 		int new_mode = _system.mode;
 
 		// cycle through the texts ..
-		if (msSystem.msButtons.msBtnALongHit) {
+		if (buttons.isButtonALongPressed()) {
 			msSystem.msButtons.msBtnALongHit = false;
 			msSystem.showBatteryStatus(true);
 		}
 
-		if (msSystem.msButtons.msBtnBLongHit) {
+		if (buttons.isButtonBLongPressed()) {
 			msSystem.msButtons.msBtnBLongHit = false;
 			if (new_mode == MS4_App_System_Mode_CALIBRATION)
 				msSystem.powerCalibrate();
 		}
 
-		if (msSystem.msButtons.msBtnAHit) {
+		if (buttons.isButtonAPressed()) {
 			msSystem.msButtons.msBtnAHit = false;	// !J! todo: button callbacks
 			
 			new_mode++;
@@ -149,29 +162,29 @@ class SystemTextMode:public MagicShifterBaseMode {
 			needsTextUpdate = true;
 		}
 
-		if (msSystem.msButtons.msBtnBHit) {
+		if (buttons.isButtonBPressed()) {
 			msSystem.msButtons.msBtnBHit = false;	// !J! todo: button callbacks
-			
+
 			new_mode--;
-			
+
 			if (new_mode < _MS4_App_System_Mode_MIN)
 				new_mode = _MS4_App_System_Mode_MAX;
 
 			needsTextUpdate = true;
 		}
 
-		if (msSystem.msButtons.msBtnPwrHit) {
-			msSystem.slogln("btpwr");
+		if (buttons.isPowerButtonPressed()) {
+			logger.logln("btpwr");
 			msSystem.msButtons.msBtnPwrHit = false;
 			if (new_mode == MS4_App_System_Mode_WIFI) { // WIFI
-				msSystem.slogln("wifi cursor!");
+				logger.logln("wifi cursor!");
 				if (msGlobals.ggEnableWIFI)  {
 					WiFi.disconnect(true);
 					msGlobals.ggEnableWIFI = false;
-					msSystem.slogln("disconnected");
+					logger.logln("disconnected");
 				}
 				else {
-					msSystem.slogln("autoconnect");
+					logger.logln("autoconnect");
 					msGlobals.ggEnableWIFI = true;
 					AutoConnect();
 				}
@@ -263,33 +276,37 @@ class SystemTextMode:public MagicShifterBaseMode {
 
 		if (lPOVMode.step()) {
 			return true;
-		} else {	
+		} else {
 			// !J! : note - debug code to indicate values
-			// msSystem.slog("bV:"); msSystem.slogln(String(msSystem.batteryVoltage));
-			msSystem.msLEDs.fillLEDs(0, 0, 0, msGlobals.ggBrightness);
+			// logger.log("bV:"); logger.logln(String(msSystem.batteryVoltage).c_str());
 
-			if (isBatteryLow){ 
-				msSystem.msLEDs.setLED(0, 255, 0, 0, msGlobals.ggBrightness);
+			auto& leds = context->getLEDs();
+			uint8_t brightness = context->getBrightness();
+
+			leds.fillLEDs(0, 0, 0, brightness);
+
+			if (isBatteryLow){
+				leds.setLED(0, 255, 0, 0, brightness);
 			}
 			else {
-				msSystem.msLEDs.setLED(0, 0, 255, 0, msGlobals.ggBrightness);
+				leds.setLED(0, 0, 255, 0, brightness);
 			}
 
 			if  (msGlobals.ggEnableWIFI) {
-				msSystem.msLEDs.setLED(1, 0, 255, 0, msGlobals.ggBrightness);
+				leds.setLED(1, 0, 255, 0, brightness);
 			}
 			else {
-				msSystem.msLEDs.setLED(1, 255, 0, 0, msGlobals.ggBrightness);
+				leds.setLED(1, 255, 0, 0, brightness);
 			}
 
 			if  (isConnectedToAP) {
-				msSystem.msLEDs.setLED(2, 0, 255, 0, msGlobals.ggBrightness);
+				leds.setLED(2, 0, 255, 0, brightness);
 			}
 			else {
-				msSystem.msLEDs.setLED(2, 255, 0, 0, msGlobals.ggBrightness);
+				leds.setLED(2, 255, 0, 0, brightness);
 			}
 
-			msSystem.msLEDs.updateLEDs();
+			leds.updateLEDs();
 
 			needsTextUpdate = true;
 

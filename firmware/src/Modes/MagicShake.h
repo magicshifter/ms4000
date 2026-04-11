@@ -40,7 +40,7 @@ public:
 	// Get a file from the list of onboard files, filtering only .magicBitmap files// fileIndex: the idx of the file in the list// maxFiles: returns the length of the list// return: filename when found, empty string when not found
 
 	void emit () {
-		
+
 	}
 
 	String getFileNameAtIndex(int fileIndex, int &maxFiles) {
@@ -102,7 +102,9 @@ public:
 
 	// load a magic Shake file for display
 	void loadShakeFile(const char *filename) {
-		msSystem.slogln(String(modeName) + " load File:" + String(filename));
+		if (!hasContext()) return;
+
+		context->getLogger().logln((String(modeName) + " load File:" + String(filename)).c_str());
 
 		lLocalImage.close();
 		lLocalImage.LoadFile(filename);
@@ -154,26 +156,33 @@ public:
 	}
 
 	bool step() {
+		if (!hasContext()) return false;
+
+		extern MagicShifterSystem msSystem;
+		extern MagicShifterGlobals msGlobals;
+
+		auto& buttons = context->getButtons();
+
 		#define MAX_BALL_COLORS 16
 		int newCursor = dirCursor;
 		int colorcursor = colorCursor;
 
-		if (msSystem.msButtons.msBtnALongHit == true) {
+		if (buttons.isButtonALongPressed()) {
 			msSystem.msButtons.msBtnALongHit = false;
 			correctBrightness = !correctBrightness;
 		}
 
-		if (msSystem.msButtons.msBtnAHit == true) {
+		if (buttons.isButtonAPressed()) {
 			msSystem.msButtons.msBtnAHit = false;
 			newCursor++;
 		}
 
-		if (msSystem.msButtons.msBtnBHit == true) {
+		if (buttons.isButtonBPressed()) {
 			msSystem.msButtons.msBtnBHit = false;
 			newCursor--;
 		}
 
-		if (msSystem.msButtons.msBtnPwrHit == true) {
+		if (buttons.isPowerButtonPressed()) {
 			msSystem.msButtons.msBtnPwrHit = false;
 			colorcursor--;
 		}

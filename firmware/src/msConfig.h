@@ -5,6 +5,9 @@
 #ifndef MS_CONFIG_H
 #define MS_CONFIG_H
 
+// Include centralized board configuration
+#include "Config/BoardConfig.h"
+
 #undef DEBUG_OUTPUT
 
 #undef MS_TEST_LITTLEFS
@@ -157,4 +160,46 @@
 #define FAULT_NO_ACCELEROMETER 0xf1
 #define FAULT_VERY_LOW_POWER 0xf2
 
+// ============================================================================
+// Backward Compatibility Aliases for BoardConfig
+// ============================================================================
+// These aliases allow existing code to compile with the new BoardConfig
+// system. New code should use MS4000::BoardConfig::* directly.
+// ============================================================================
+
+// Pin definitions - use BoardConfig::Pins::* in new code
+#ifndef PIN_I2C_DATA
+#define PIN_I2C_DATA MS4000::BoardConfig::Pins::I2C_SDA
 #endif
+#ifndef PIN_I2C_CLOCK
+#define PIN_I2C_CLOCK MS4000::BoardConfig::Pins::I2C_SCL
+#endif
+#ifndef PIN_LED_ENABLE
+#define PIN_LED_ENABLE MS4000::BoardConfig::Pins::LED_ENABLE
+#endif
+#ifndef PIN_LED_DATA
+#define PIN_LED_DATA MS4000::BoardConfig::Pins::SPI_MOSI
+#endif
+#ifndef PIN_LED_CLOCK
+#define PIN_LED_CLOCK MS4000::BoardConfig::Pins::SPI_SCK
+#endif
+#ifndef PIN_PWR_MGT
+#define PIN_PWR_MGT MS4000::BoardConfig::Pins::POWER_MGMT
+#endif
+
+// Button timing - use BoardConfig::Buttons::* in new code
+#ifndef MIN_TIME_CLICK
+#define MIN_TIME_CLICK MS4000::BoardConfig::Buttons::MIN_CLICK_TIME_US
+#endif
+#ifndef MIN_TIME_LONG_CLICK
+#define MIN_TIME_LONG_CLICK MS4000::BoardConfig::Buttons::MIN_LONG_CLICK_TIME_US
+#endif
+#ifndef MAX_TIME_DOUBLE_CLICK
+#define MAX_TIME_DOUBLE_CLICK MS4000::BoardConfig::Buttons::MAX_DOUBLE_CLICK_TIME_MS
+#endif
+#ifndef BUTTON_PWR_THRESHOLD_DEFAULT
+#define BUTTON_PWR_THRESHOLD_DEFAULT MS4000::BoardConfig::Buttons::POWER_BUTTON_ADC_THRESHOLD
+#endif
+
+#endif
+

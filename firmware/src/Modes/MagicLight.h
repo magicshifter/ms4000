@@ -3,7 +3,7 @@
 
 //
 // render some magic lights
-// 
+//
 
 class MagicLightMode : public MagicShifterBaseMode {
 
@@ -24,7 +24,7 @@ class MagicLightMode : public MagicShifterBaseMode {
 
 public:
 
-	MagicLightMode() { 
+	MagicLightMode() {
 		_light.colorIndex = 6;
 		_light.triggerSpeed = 0; // milliseconds
 
@@ -34,6 +34,7 @@ public:
 	// depending on button-presses, let the user select
 	// sub-mode options
     bool lightSubModeSelector() {
+		if (!hasContext()) return false;
 
 		int old_light_mode = _light.mode;
 		int new_light_mode = old_light_mode;
@@ -41,26 +42,34 @@ public:
 
 		if (firstRun)
 			firstRun = false;
-		else
+		else {
+			// Note: Requires direct msSystem access for now (step() is complex)
+			extern MagicShifterSystem msSystem;
 			msSystem.step();
+		}
 
-		if ((msSystem.msButtons.msBtnPwrHit)  ) {
+		auto& buttons = context->getButtons();
+		auto& leds = context->getLEDs();
+		auto& logger = context->getLogger();
+		uint8_t brightness = context->getBrightness();
+
+		if (buttons.isPowerButtonPressed()) {
 			centerMode++;
+			// Note: Button flag clearing needs direct access until API is enhanced
+			extern MagicShifterSystem msSystem;
 			msSystem.msButtons.msBtnPwrHit = false;
 		} else {
 			trigger_time++;
 		}
 
-		if (msSystem.msButtons.msBtnAHit) {
-			
+		if (buttons.isButtonAPressed()) {
 			new_light_mode--;
-
+			extern MagicShifterSystem msSystem;
 			msSystem.msButtons.msBtnAHit = false;
 		}
-		if (msSystem.msButtons.msBtnBHit) {
-			
+		if (buttons.isButtonBPressed()) {
 			new_light_mode++;
-
+			extern MagicShifterSystem msSystem;
 			msSystem.msButtons.msBtnBHit = false;
 		}
 
@@ -76,53 +85,60 @@ public:
 
 			_light.mode = (MS4_App_Light_Mode)new_light_mode;
 
-			msSystem.slog("_light.mode: ");
-			msSystem.slogln(String(_light.mode));
+			logger.log("_light.mode: ");
+			logger.logln(String(_light.mode).c_str());
 
-			msSystem.slog("_light.triggerSpeed: ");
-			msSystem.slogln(String(_light.triggerSpeed));
+			logger.log("_light.triggerSpeed: ");
+			logger.logln(String(_light.triggerSpeed).c_str());
 
-			msSystem.slog("_light.trigger_time: ");
-			msSystem.slogln(String(trigger_time));
+			logger.log("_light.trigger_time: ");
+			logger.logln(String(trigger_time).c_str());
 
-			msSystem.msLEDs.fillLEDs(255, 255, 255, msGlobals.ggBrightness);
-			msSystem.msLEDs.updateLEDs();
+			leds.fillLEDs(255, 255, 255, brightness);
+			leds.updateLEDs();
 			delay(10);
-			msSystem.msLEDs.fillLEDs(0, 0, 0, msGlobals.ggBrightness);
-			msSystem.msLEDs.updateLEDs();
+			leds.fillLEDs(0, 0, 0, brightness);
+			leds.updateLEDs();
 		}
 
 		// .. propagate the menu mode, in case its activited..
+		extern MagicShifterSystem msSystem;
 		return msSystem.modeMenuActivated;
 	}
 
 	void start() {
-	} 
+	}
 
 	void stop(void) {
 	}
 
 	bool step() {
+		if (!hasContext()) return true;
+
 		frame++;
 		firstRun = true;
 		int start, end;
+
+		auto& leds = context->getLEDs();
+		auto& logger = context->getLogger();
+		uint8_t brightness = context->getBrightness();
 
 		lightSubModeSelector();
 
 		// rainbow
 		if (_light.mode == MS4_App_Light_Mode_RAINBOW) {
 			if (frame % pDelay == 0) {
-				msSystem.msLEDs.fillLEDs(0, 0, 0, msGlobals.ggBrightness);
-				msSystem.msLEDs.setLED((xx + 0 * 3) & MAX_LEDS, 255, 0, 0, msGlobals.ggBrightness);
+				leds.fillLEDs(0, 0, 0, brightness);
+				leds.setLED((xx + 0 * 3) & MAX_LEDS, 255, 0, 0, brightness);
 
-				msSystem.msLEDs.setLED((xx + 1 * 3) & MAX_LEDS, 255, 255, 0, msGlobals.ggBrightness);
-				msSystem.msLEDs.setLED((xx + 2 * 3) & MAX_LEDS, 0, 255, 0, msGlobals.ggBrightness);
+				leds.setLED((xx + 1 * 3) & MAX_LEDS, 255, 255, 0, brightness);
+				leds.setLED((xx + 2 * 3) & MAX_LEDS, 0, 255, 0, brightness);
 
-				msSystem.msLEDs.setLED((xx + 3 * 3) & MAX_LEDS, 0, 255, 255, msGlobals.ggBrightness);
-				msSystem.msLEDs.setLED((xx + 4 * 3) & MAX_LEDS, 0, 0, 255, msGlobals.ggBrightness);
+				leds.setLED((xx + 3 * 3) & MAX_LEDS, 0, 255, 255, brightness);
+				leds.setLED((xx + 4 * 3) & MAX_LEDS, 0, 0, 255, brightness);
 
 				xx++;
-				msSystem.msLEDs.updateLEDs();
+				leds.updateLEDs();
 			}
 
 			if (centerMode > 0) {
@@ -142,13 +158,13 @@ public:
 			int r=0,g=0,b=0;
 
 			int ii = _light.colorIndex+1;
-			
+
 			if (ii & 1) r = 255;
 			if (ii & 2) g = 255;
 			if (ii & 4) b = 255;
 
-			msSystem.msLEDs.fillLEDs(r, g, b, msGlobals.ggBrightness);
-			msSystem.msLEDs.updateLEDs();
+			leds.fillLEDs(r, g, b, brightness);
+			leds.updateLEDs();
 
 			if (centerMode > 0) {
 				centerMode--;
@@ -164,8 +180,8 @@ public:
 				centerMode = 1;
 			}
 
-			msSystem.slog("centerMode: ");
-			msSystem.slogln(String(centerMode));
+			logger.log("centerMode: ");
+			logger.logln(String(centerMode).c_str());
 
 			if (dir)
 			{
@@ -182,7 +198,7 @@ public:
 
 		}
 
-		// scanner 
+		// scanner
 		if (_light.mode == MS4_App_Light_Mode_SCANNER_RGB) {
 			if (dir)
 			{
@@ -197,7 +213,7 @@ public:
 
 			if (centerMode > 0) {
 				centerMode--;
-	
+
 				if (_light.mode == MS4_App_Light_Mode_SCANNER_RGB)
 				{
 					for (int index = 0; index < 3; index++) {
@@ -213,9 +229,9 @@ public:
 				dir = (dir + 1) % 2;
 			}
 			else { // MS4_App_Light_Mode_SCANNER_RGB_BW
-				msSystem.msLEDs.fillLEDs(0, 0, 0, msGlobals.ggBrightness);
-				msSystem.msLEDs.setLED(start, 255, 255, 255, msGlobals.ggBrightness);
-				msSystem.msLEDs.updateLEDs();
+				leds.fillLEDs(0, 0, 0, brightness);
+				leds.setLED(start, 255, 255, 255, brightness);
+				leds.updateLEDs();
 			}
 
 			if (centerMode) {
@@ -236,6 +252,9 @@ public:
 
 	void startToEndChannel(uint8_t start, uint8_t end, int d, int channel, int color)
 	{
+		if (!hasContext()) return;
+
+		auto& leds = context->getLEDs();
 		int i;
 
 		i = start;
@@ -244,9 +263,9 @@ public:
 				return;
 			}
 
-			msSystem.msLEDs.setAllChannel(channel, 0);
-			msSystem.msLEDs.setChannel(i, channel, color);
-			msSystem.msLEDs.updateLEDs();
+			leds.setAllChannel(channel, 0);
+			leds.setChannel(i, channel, color);
+			leds.updateLEDs();
 			if (d)
 				delay(d);
 			if (i < end)
@@ -254,13 +273,18 @@ public:
 			else
 				i--;
 		} while (i != end);
-		msSystem.msLEDs.setAllChannel(channel, 0);
-		msSystem.msLEDs.setChannel(i, channel, color);
-		msSystem.msLEDs.updateLEDs();
+		leds.setAllChannel(channel, 0);
+		leds.setChannel(i, channel, color);
+		leds.updateLEDs();
 	}
 
 	void startToEndZigZag(uint8_t start, uint8_t end, int d, uint8_t r, uint8_t g, uint8_t b)
 	{
+		if (!hasContext()) return;
+
+		auto& leds = context->getLEDs();
+		uint8_t brightness = context->getBrightness();
+
 		int i;
 		uint8_t lastEnd = end;
 		uint8_t currentStart = start;
@@ -279,10 +303,10 @@ public:
 					return;
 				}
 
-				msSystem.msLEDs.fillLEDs(0, 0, 0, msGlobals.ggBrightness);
+				leds.fillLEDs(0, 0, 0, brightness);
 				if (i >= 0 && i < MAX_LEDS)
-				msSystem.msLEDs.setLED(i, r, g, b, msGlobals.ggBrightness);
-				msSystem.msLEDs.updateLEDs();
+				leds.setLED(i, r, g, b, brightness);
+				leds.updateLEDs();
 				if (d)
 					delay(d);
 				if (i < currentEnd)
@@ -301,7 +325,7 @@ public:
 						start--;
 					if (start == end)
 						break;
-				}		
+				}
 				currentStart = end;
 				currentEnd = start;
 			}
@@ -315,14 +339,14 @@ public:
 						end--;
 				}
 				currentStart = start;
-				currentEnd = end;		
+				currentEnd = end;
 			}
 		}
 
 		// last
-		msSystem.msLEDs.fillLEDs(0, 0, 0, msGlobals.ggBrightness);
-		msSystem.msLEDs.setLED(i, r, g, b, msGlobals.ggBrightness);
-		msSystem.msLEDs.updateLEDs();
+		leds.fillLEDs(0, 0, 0, brightness);
+		leds.setLED(i, r, g, b, brightness);
+		leds.updateLEDs();
 	}
 
 };

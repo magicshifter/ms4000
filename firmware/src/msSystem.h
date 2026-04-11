@@ -1241,6 +1241,9 @@ void showBatteryStatus(bool shouldFadeIn) {
 
 };
 
+// Extern declaration for global instance (defined in MS3KOS.cpp)
+extern MagicShifterSystem msSystem;
+
 #include "CommandInterface.h"
 
 #endif

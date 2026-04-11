@@ -1,0 +1,58 @@
+# Doxyfile for MS4000 Firmware
+
+PROJECT_NAME           = "MS4000 Firmware"
+PROJECT_NUMBER         = 4.0.0
+PROJECT_BRIEF          = "Embedded LED synthesizer firmware for ESP8266"
+
+OUTPUT_DIRECTORY       = docs/
+INPUT                  = src/
+RECURSIVE              = YES
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+
+FILE_PATTERNS          = *.h *.cpp
+EXCLUDE_PATTERNS       = */lib/* */.pio/*
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+
+GENERATE_LATEX         = NO
+
+HAVE_DOT               = NO
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+
+# Show file/line numbers in documentation
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+
+# Generate class hierarchy
+CLASS_DIAGRAMS         = YES
+
+# Include brief member descriptions in class documentation
+BRIEF_MEMBER_DESC      = YES
+
+# Repeat brief descriptions before detailed ones
+REPEAT_BRIEF           = YES
+
+# Optimize output for C++
+OPTIMIZE_OUTPUT_FOR_C  = NO
+
+# Include namespaces in documentation
+EXTRACT_ALL            = YES
+
+# Document all entities
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+
+# Show todos and warnings
+GENERATE_TODOLIST      = YES
+GENERATE_BUGLIST       = YES
+GENERATE_DEPRECATEDLIST= YES
+
+# Warnings
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = NO

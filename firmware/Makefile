@@ -155,7 +155,8 @@ package:	package-assets
 	make -C ../web/app package
 	$(call success,📦 Packaging web+firmware assets to data ...)
 
-asset-fs:	package	uploadfs
+assets:	package	uploadfs
+	$(call announce,📦 Packaginge data assets and uploading ...)
 
 rebuild: clean all
 

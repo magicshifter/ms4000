@@ -186,6 +186,10 @@ clean:
 	make -C web/app clean
 	$(call success,Full clean completed)
 
+assets:
+	$(call announce, 📦  Install firmware data/ assets (including web/app bundle))
+	make -C firmware/ assets
+
 rebuild: clean all
 
 help:
@@ -200,6 +204,7 @@ help:
 	@echo "  factory            🏭  Build factory flashing tools"
 	@echo "  firmware           📟  Build firmware only"
 	@echo "  web                🌐  Build web app"
+	@echo "  assets             📦  Install firmware data/ assets (including web/app bundle)"
 	@echo "  clean              🧹  Clean all artifacts"
 	@echo "  rebuild            ♻️   Clean + full build"
 	@echo "  python-requirements 📥 Install local Python deps"
@@ -213,6 +218,6 @@ help:
         reqs-debian install-python-venv new-python-environment \
         python-requirements activate \
         tools factory firmware firmware-clean firmware-proto \
-        web web-clean clean rebuild help
+        web web-clean clean rebuild help assets
 
 # vim: set ts=8 sts=8 sw=8 noet ft=make :

@@ -20,7 +20,7 @@ RUN groupadd -g $GID buildergroup \
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends --no-install-suggests \
-    make git python3 python3-setuptools python3-pip protobuf-compiler npm build-essential \
+    make git rsync python3 python3-setuptools python3-pip protobuf-compiler npm build-essential \
  && rm -rf /var/lib/apt/lists/*
 
 # npm global

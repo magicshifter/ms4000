@@ -2,3 +2,4 @@
 node = "20"
 python = "3.9"
 "npm:vite" = "8.0"
+1password = "latest"

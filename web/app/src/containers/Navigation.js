@@ -44,9 +44,10 @@ class Navigation extends Component {
     const controls = []
     for (var i = 0; i < structure.length; i++) {
       const nav = structure[i]
+      const itemClassName = nav.name === location ? "ms3000-menu-item ms3000-menu-item-active" : "ms3000-menu-item"
 
       controls.push(
-        <li key={i} className="ms3000-menu-item" className={ nav.name === location ? "ms3000-menu-item-active" : null }>
+        <li key={i} className={itemClassName}>
           <a href="#" onClick={this.onClickNav} data-name={nav.name}>
             {nav.name}
           </a>

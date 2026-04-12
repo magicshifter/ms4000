@@ -6,7 +6,7 @@ import {
 } from '../actions/ms3000'
 
 import protobufs from '../utils/protoBufLoader'
-import pb from '../utils/protoBufLoader'
+import {getProtocolBuffersPromise} from '../utils/protoBufLoader'
 import {throttle} from "../utils/debounce";
 
 import AutoInterface from '../components/AutoInterface/index'
@@ -21,11 +21,33 @@ class Config extends Component {
   constructor(props) {
     super(props)
 
+    this.state = {
+      protobufsReady: Boolean(protobufs.MS4),
+      protobufError: null,
+    }
+
     const ctx = this
     this.dispatchDebouncedPostShifterState = throttle(() => {
       const { dispatch } = ctx.props
       dispatch(configUpload())
     }, 500)
+  }
+
+  componentDidMount() {
+    if (!this.state.protobufsReady) {
+      getProtocolBuffersPromise()
+        .then(() => {
+          this.setState({
+            protobufsReady: true,
+            protobufError: null,
+          })
+        })
+        .catch((protobufError) => {
+          this.setState({
+            protobufError,
+          })
+        })
+    }
   }
 
   onChangeAutoInterface = (newState, theType) => {
@@ -48,17 +70,21 @@ class Config extends Component {
   }
 
   handleTestBuffer = e => {
-    console.log("create", pb.MS4.create())
+    if (!protobufs.MS4) {
+      return
+    }
+
+    console.log("create", protobufs.MS4.create())
     const {shifterState } = this.props
 
     const testObj = shifterState
-    var check = pb.MS4.verify(testObj);
+    var check = protobufs.MS4.verify(testObj);
     console.log("verified:", check, testObj)
 
-    var bufferU8 = pb.MS4.encode(testObj).finish()
+    var bufferU8 = protobufs.MS4.encode(testObj).finish()
 
     //dumpU8(bufferU8)
-    const decodedObj = pb.MS4.decode(bufferU8);
+    const decodedObj = protobufs.MS4.decode(bufferU8);
 
     console.log("after decoding:", decodedObj, bufferU8)
   }
@@ -95,6 +121,15 @@ class Config extends Component {
       isConfigDownloading,
       configDownloadError
     } = this.props
+    const { protobufsReady, protobufError } = this.state
+
+    if (protobufError) {
+      return <div>Failed to load protocol buffers: {protobufError.toString()}</div>
+    }
+
+    if (!protobufsReady) {
+      return <div>Loading config schema...</div>
+    }
 
       return (
           <div style={{border: '2px solid yellow'}}>

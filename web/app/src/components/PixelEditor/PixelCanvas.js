@@ -72,31 +72,12 @@ export default class PixelCanvas extends Component {
 
     evt.preventDefault()
     this.useTool(evt, 'down')
-    return
-
-    evt.preventDefault();
-    const touches = evt.changedTouches;
-
-    for (let i = 0; i < touches.length; i++) {
-      const touch = touches[i];
-      //console.log("touchstart: ", i, touch);
-      this.touches[touch.identifier] = copyTouch(touch);
-    }
   }
 
   handleTouchMove = (evt) => {
 
     evt.preventDefault();
     this.useTool(evt, 'move')
-    return
-
-    evt.preventDefault();
-    const touches = evt.changedTouches;
-
-    for (let i = 0; i < touches.length; i++) {
-      const touch = touches[i];
-      this.touches[touch.identifier] = copyTouch(touch)
-    }
   }
 
   handleTouchEnd = (evt) => {

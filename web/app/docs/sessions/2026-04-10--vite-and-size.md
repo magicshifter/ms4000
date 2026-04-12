@@ -1,0 +1,3 @@
+...
+
+the dist folder is tooooooo large. What can we do? compress?

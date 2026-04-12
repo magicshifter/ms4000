@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import {getProtocolBuffersPromise} from './utils/protoBufLoader'
 import {applyMiddleware, createStore} from 'redux'
 import {Provider} from 'react-redux'
 
@@ -35,14 +34,9 @@ const store = createStore(
 // after createStore
 //sagaMiddleware.run(rootSaga)
 
-
-
-var p = getProtocolBuffersPromise();
-p.then( () => {
-  ReactDOM.render(
-    <Provider store={store}>
-      <App/>
-    </Provider>,
-    document.getElementById('root')
-  )
-});
+ReactDOM.render(
+  <Provider store={store}>
+    <App/>
+  </Provider>,
+  document.getElementById('root')
+)

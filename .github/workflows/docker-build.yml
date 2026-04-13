@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  packages: write
+  packages: write   # Needed for pushing to ghcr.io
 
 jobs:
   docker-build:
@@ -23,7 +23,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Login to GHCR (only needed when pushing)
+      # Login to GHCR only when pushing (on merge to main/master)
       - name: Login to GitHub Container Registry
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: docker/login-action@v3
@@ -42,8 +42,8 @@ jobs:
           load: true
           tags: |
             ms4000-firmware-builder:latest
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.sha }}
           build-args: |
             UID=1000
             GID=1000
@@ -57,14 +57,12 @@ jobs:
           docker run --rm ms4000-firmware-builder:latest bash -c '
             set -e
             echo "→ Firmware build check:"
-            ls -la firmware/.pio/build/ || echo "Warning: No .pio/build folder"
-            
             if ls firmware/.pio/build/*/firmware.bin 1> /dev/null 2>&1; then
               echo "✅ firmware.bin successfully built!"
               mkdir -p /tmp/artifacts/firmware
               find firmware/.pio/build/ -name "firmware.bin" -exec cp {} /tmp/artifacts/firmware/ \;
             else
-              echo "❌ firmware.bin not found!"
+              echo "❌ firmware.bin not found after build!"
               exit 1
             fi
 
@@ -74,17 +72,16 @@ jobs:
               mkdir -p /tmp/artifacts/web
               cp -r web/app/dist /tmp/artifacts/web/
             else
-              echo "Warning: web/app/dist not found"
+              echo "⚠️  web/app/dist not found"
             fi
 
-            echo "=== All verification steps passed ==="
+            echo "=== Verification passed ==="
           '
 
-      - name: Extract artifacts from container
+      - name: Extract artifacts
         run: |
-          # Copy artifacts out (this works because we used --rm earlier, but files are copied now)
           docker create --name temp-extractor ms4000-firmware-builder:latest
-          docker cp temp-extractor:/tmp/artifacts ./artifacts || echo "No artifacts directory (some builds may skip)"
+          docker cp temp-extractor:/tmp/artifacts ./artifacts 2>/dev/null || echo "No artifacts folder created"
           docker rm temp-extractor
 
       - name: Upload firmware.bin artifact
@@ -106,12 +103,13 @@ jobs:
       - name: Build summary
         if: always()
         run: |
-          echo "Docker Build Summary for ${{ github.repository }}"
-          echo "Commit SHA: ${{ github.sha }}"
+          echo "✅ Docker build completed"
+          echo "Repository : ${{ github.repository }}"
+          echo "SHA        : ${{ github.sha }}"
           if [[ "${{ github.event_name }}" == "push" && ("${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master") ]]; then
-            echo "✅ Image pushed to GHCR:"
-            echo "   ghcr.io/${{ github.repository }}:latest"
-            echo "   ghcr.io/${{ github.repository }}:${{ github.sha }}"
+            echo "Image pushed to:"
+            echo "   ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest"
+            echo "   ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.sha }}"
           else
-            echo "✅ Build & verification completed on PR (no push)"
+            echo "Build verified on PR (no push performed)"
           fi

@@ -1,4 +1,4 @@
-name: Docker Build & Publish - MS4000 Firmware
+name: Build MS4000 Release
 
 on:
   push:
@@ -8,10 +8,11 @@ on:
 
 permissions:
   contents: read
-  packages: write   # Needed for pushing to ghcr.io
+  pages: write          # For gh-pages deployment
+  id-token: write       # Required for GitHub Pages
 
 jobs:
-  docker-build:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,93 +24,169 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Login to GHCR only when pushing (on merge to main/master)
-      - name: Login to GitHub Container Registry
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build Docker image
-        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
-          push: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') }}
+          push: false
           load: true
-          tags: |
-            ms4000-firmware-builder:latest
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.sha }}
+          tags: ms4000-firmware-builder:latest
           build-args: |
             UID=1000
             GID=1000
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Verify build inside container
+      - name: Verify build and extract binaries
+        id: verify
         run: |
           echo "=== Running verification inside container ==="
 
           docker run --rm ms4000-firmware-builder:latest bash -c '
-            set -e
+            set -euo pipefail
+
             echo "→ Firmware build check:"
-            if ls firmware/.pio/build/*/firmware.bin 1> /dev/null 2>&1; then
-              echo "✅ firmware.bin successfully built!"
+            FIRMWARE_BIN=$(find firmware/.pio/build/ -name "firmware.bin" | head -n 1)
+            FILESYSTEM_BIN=$(find firmware/.pio/build/ -name "filesystem.bin" | head -n 1)
+
+            if [ -n "$FIRMWARE_BIN" ]; then
+              echo "✅ firmware.bin found at: $FIRMWARE_BIN"
               mkdir -p /tmp/artifacts/firmware
-              find firmware/.pio/build/ -name "firmware.bin" -exec cp {} /tmp/artifacts/firmware/ \;
+              cp "$FIRMWARE_BIN" /tmp/artifacts/firmware/firmware.bin
             else
-              echo "❌ firmware.bin not found after build!"
+              echo "❌ firmware.bin not found!"
               exit 1
             fi
 
+            if [ -n "$FILESYSTEM_BIN" ]; then
+              echo "✅ filesystem.bin found at: $FILESYSTEM_BIN"
+              cp "$FILESYSTEM_BIN" /tmp/artifacts/firmware/filesystem.bin
+            else
+              echo "⚠️  filesystem.bin not found (optional)"
+            fi
+
             echo "→ Webapp build check:"
-            if [ -d "web/app/dist" ]; then
-              echo "✅ Webapp dist folder found!"
+            if [ -d "web/app/dist" ] && [ "$(ls -A web/app/dist 2>/dev/null)" ]; then
+              echo "✅ Webapp successfully built!"
               mkdir -p /tmp/artifacts/web
               cp -r web/app/dist /tmp/artifacts/web/
             else
-              echo "⚠️  web/app/dist not found"
+              echo "⚠️  web/app/dist folder is missing or empty"
             fi
 
-            echo "=== Verification passed ==="
+            echo "=== Verification completed ==="
           '
 
-      - name: Extract artifacts
+      - name: Extract artifacts from container
         run: |
-          docker create --name temp-extractor ms4000-firmware-builder:latest
-          docker cp temp-extractor:/tmp/artifacts ./artifacts 2>/dev/null || echo "No artifacts folder created"
-          docker rm temp-extractor
+          echo "Extracting build artifacts..."
+          CONTAINER_ID=$(docker create ms4000-firmware-builder:latest)
+          docker cp $CONTAINER_ID:/tmp/artifacts ./artifacts 2>/dev/null || echo "No artifacts directory"
+          docker rm $CONTAINER_ID
 
-      - name: Upload firmware.bin artifact
+      - name: Print binary details
+        run: |
+          echo "=== Binary Details ==="
+          if [ -f ./artifacts/firmware/firmware.bin ]; then
+            echo "firmware.bin:"
+            ls -lh ./artifacts/firmware/firmware.bin
+            md5sum ./artifacts/firmware/firmware.bin
+          else
+            echo "firmware.bin: Not found"
+          fi
+
+          if [ -f ./artifacts/firmware/filesystem.bin ]; then
+            echo "filesystem.bin:"
+            ls -lh ./artifacts/firmware/filesystem.bin
+            md5sum ./artifacts/firmware/filesystem.bin
+          else
+            echo "filesystem.bin: Not found"
+          fi
+
+      - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-bin
-          path: ./artifacts/firmware/firmware.bin
+          name: firmware-bin-${{ github.sha }}
+          path: ./artifacts/firmware/
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 60
+          compression-level: 0
 
-      - name: Upload webapp build artifact
+      - name: Upload webapp artifact
         uses: actions/upload-artifact@v4
         with:
-          name: webapp-dist
+          name: webapp-dist-${{ github.sha }}
           path: ./artifacts/web/dist
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 60
 
-      - name: Build summary
+      - name: Build Summary
         if: always()
         run: |
-          echo "✅ Docker build completed"
-          echo "Repository : ${{ github.repository }}"
-          echo "SHA        : ${{ github.sha }}"
-          if [[ "${{ github.event_name }}" == "push" && ("${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master") ]]; then
-            echo "Image pushed to:"
-            echo "   ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest"
-            echo "   ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.sha }}"
-          else
-            echo "Build verified on PR (no push performed)"
-          fi
+          echo "🚀 MS4000 Firmware Build Summary"
+          echo "Commit : ${{ github.sha }}"
+          echo "Status : ${{ job.status }}"
+
+  # ==================== Deploy Job (only on push to main/master) ====================
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download artifacts from build job
+        uses: actions/download-artifact@v4
+        with:
+          path: ./downloaded-artifacts
+
+      - name: Prepare files for gh-pages and Release
+        run: |
+          mkdir -p ./deploy/firmware ./deploy/web
+          # Copy binaries
+          cp -f ./downloaded-artifacts/firmware-bin-*/firmware.bin   ./deploy/firmware/ 2>/dev/null || true
+          cp -f ./downloaded-artifacts/firmware-bin-*/filesystem.bin ./deploy/firmware/ 2>/dev/null || true
+          # Copy webapp
+          cp -r ./downloaded-artifacts/webapp-dist-*/. ./deploy/web/ 2>/dev/null || true
+
+          # Create a simple index.html for gh-pages
+          cat > ./deploy/index.html << EOF
+          <html><head><title>MS4000 Firmware Downloads</title></head><body>
+          <h1>MS4000 development-build: Firmware & Webapp</h1>
+          <p>Latest development build from commit: <code>${{ github.sha }}</code></p>
+          <p>WARNING: Very Experimental - for now - may contain bugs and unimplemented features.</p>
+          <ul>
+            <li><a href="firmware/firmware.bin">firmware.bin</a></li>
+            <li><a href="firmware/filesystem.bin">filesystem.bin</a> (if present)</li>
+            <li><a href="web/">Webapp (dist folder)</a></li>
+          </ul>
+          </body></html>
+          EOF
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./deploy
+          publish_branch: gh-pages
+          force_orphan: false   # Keep history (set true if you want clean history)
+
+      - name: Create GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.sha }}
+          name: Firmware Build ${{ github.sha }}
+          body: |
+            Automatic build from commit ${{ github.sha }}.
+            - firmware.bin
+            - filesystem.bin (if built)
+            - Webapp dist
+          draft: false
+          prerelease: false
+          files: |
+            ./deploy/firmware/firmware.bin
+            ./deploy/firmware/filesystem.bin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

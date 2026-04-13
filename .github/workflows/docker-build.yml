@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  packages: write        # Required to push to ghcr.io
+  packages: write
 
 jobs:
   docker-build:
@@ -23,7 +23,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Login to GHCR only when we intend to push (on main/master)
+      # Login to GHCR (only needed when pushing)
       - name: Login to GitHub Container Registry
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: docker/login-action@v3
@@ -39,8 +39,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') }}
-          load: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+          load: true
           tags: |
+            ms4000-firmware-builder:latest
             ghcr.io/${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:${{ github.sha }}
           build-args: |
@@ -49,32 +50,42 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Verify build and extract artifacts
+      - name: Verify build inside container
         run: |
           echo "=== Running verification inside container ==="
 
-          docker run --rm --name builder ms4000-firmware-builder:${{ github.sha }} bash -c '
+          docker run --rm ms4000-firmware-builder:latest bash -c '
             set -e
-            echo "Firmware build check:"
-            ls -la firmware/.pio/build/ || echo "Warning: No .pio/build found"
+            echo "→ Firmware build check:"
+            ls -la firmware/.pio/build/ || echo "Warning: No .pio/build folder"
             
-            if [ -f firmware/.pio/build/*/firmware.bin ]; then
-              echo "✅ firmware.bin found!"
+            if ls firmware/.pio/build/*/firmware.bin 1> /dev/null 2>&1; then
+              echo "✅ firmware.bin successfully built!"
               mkdir -p /tmp/artifacts/firmware
               find firmware/.pio/build/ -name "firmware.bin" -exec cp {} /tmp/artifacts/firmware/ \;
+            else
+              echo "❌ firmware.bin not found!"
+              exit 1
             fi
 
-            echo "Webapp build check:"
-            ls -la web/app/dist/ || echo "Warning: No web/app/dist found"
-            if [ -d web/app/dist ]; then
+            echo "→ Webapp build check:"
+            if [ -d "web/app/dist" ]; then
               echo "✅ Webapp dist folder found!"
               mkdir -p /tmp/artifacts/web
               cp -r web/app/dist /tmp/artifacts/web/
+            else
+              echo "Warning: web/app/dist not found"
             fi
+
+            echo "=== All verification steps passed ==="
           '
 
-          # Copy artifacts from container to host
-          docker cp builder:/tmp/artifacts ./artifacts || echo "No artifacts folder created (build may have issues)"
+      - name: Extract artifacts from container
+        run: |
+          # Copy artifacts out (this works because we used --rm earlier, but files are copied now)
+          docker create --name temp-extractor ms4000-firmware-builder:latest
+          docker cp temp-extractor:/tmp/artifacts ./artifacts || echo "No artifacts directory (some builds may skip)"
+          docker rm temp-extractor
 
       - name: Upload firmware.bin artifact
         uses: actions/upload-artifact@v4
@@ -95,13 +106,12 @@ jobs:
       - name: Build summary
         if: always()
         run: |
-          echo "Docker Build Summary"
-          echo "Repository: ${{ github.repository }}"
-          echo "Commit: ${{ github.sha }}"
+          echo "Docker Build Summary for ${{ github.repository }}"
+          echo "Commit SHA: ${{ github.sha }}"
           if [[ "${{ github.event_name }}" == "push" && ("${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master") ]]; then
-            echo "✅ Image pushed to: ghcr.io/${{ github.repository }}:latest"
-            echo "                  ghcr.io/${{ github.repository }}:${{ github.sha }}"
+            echo "✅ Image pushed to GHCR:"
+            echo "   ghcr.io/${{ github.repository }}:latest"
+            echo "   ghcr.io/${{ github.repository }}:${{ github.sha }}"
           else
-            echo "✅ Build completed (no push on PRs)"
+            echo "✅ Build & verification completed on PR (no push)"
           fi
-          echo "Artifacts uploaded (if build succeeded)"

@@ -150,7 +150,7 @@ package-assets:
 	cp -rfv assets/* data/
 	$(call success,📦 Packaging firmware assets ...)
 
-package:	package-assets
+package: clean-assets package-assets
 	$(call announce,📦 Packaging web+firmware assets to data ...)
 	make -C ../web/app clean
 	make -C ../web/app build
@@ -159,6 +159,9 @@ package:	package-assets
 
 assets:	package	uploadfs
 	$(call announce,📦 Packaginge data assets and uploading ...)
+
+clean-assets:
+	rm -r ./data/*
 
 rebuild: clean all
 

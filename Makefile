@@ -1,82 +1,57 @@
 # =============================================================================
 # MS4000 Top-Level Makefile
-# Compatible with CLion Makefile project
-# Colorful announce messages with timestamps and emojis
+# vim: set ts=8 sts=8 sw=8 noet ft=make :
 # =============================================================================
 
-# Configuration
-
-MS4_PYTHON = $(shell which python3)
-
-# Auto-detect port for CP210x (Silabs) devices
-MS4_PORT_DETECTED := $(shell pio device list --json-output | $(MS4_PYTHON) -c 'exec("""\nimport json,sys\nobj=json.load(sys.stdin)\nfor y in obj:\n if "10C4:EA60" in y["hwid"].upper():\n  print(y["port"])\n""")' | head -1)
-
-# Fallback to default if detection fails
-MS4_PORT := $(or $(strip $(MS4_PORT_DETECTED)),/dev/ttyUSB0)
-
-BUILDER_NAME ?= ms4000-builder
-PWD := $(shell pwd)
-USER := $(shell id -u)
-GROUP := $(shell id -g)
-
-SYS_PYTHON := $(shell which python3)
-MS4_PYTHON = .venv_ms4000/bin/python3
+include environment.ms4
 
 # =============================================================================
-# Color and Announce Macros
-# =============================================================================
-RED     = \033[1;31m
-GREEN   = \033[1;32m
-YELLOW  = \033[1;33m
-BLUE    = \033[1;34m
-MAGENTA = \033[1;35m
-CYAN    = \033[1;36m
-WHITE   = \033[1;37m
-RESET   = \033[0m
-
-define announce
-    @echo "$(RED) [MS4000-build] $(CYAN)[$$(date '+%Y-%m-%d %H:%M:%S')] $(1)$(RESET)"
-endef
-
-define success
-    @echo "$(RED) [MS4000-build] $(GREEN)[$$(date '+%Y-%m-%d %H:%M:%S')] ✅ SUCCESS: $(1)$(RESET)"
-endef
-
-define warning
-    @echo "$(RED) [MS4000-build] $(YELLOW)[$$(date '+%Y-%m-%d %H:%M:%S')] ⚠️  $(1)$(RESET)"
-endef
-
-# =============================================================================
-# Default target (important for CLion)
+# Default target
 # =============================================================================
 release: tools builder package
 	make -C firmware/ flash
-	$(call success,MS4000 top-level release build completed)
+	$(call success,[release] MS4000 top-level release build completed)
 
 # =============================================================================
 # Docker Builder Targets
 # =============================================================================
+ 
+install-python-venv:
+	$(call announce,[install-python-venv] 🐍 Installing python3-venv...)
+	-apt install -y python3-venv
 
+new-python-environment: install-python-venv
+	$(call announce,[new-python-environment] 🌱 Creating fresh Python virtual environment...)
+	rm -rf .venv_ms4000
+	$(SYS_PYTHON) -m venv .venv_ms4000
+	$(call success,[new-python-environment] Virtual environment created at .venv_ms4000)
+	@echo -e "$(YELLOW)IMPORTANT: Run 'source .venv_ms4000/bin/activate' to activate$(RESET)"
+ 
+python-requirements: $(MS4_PYTHON)
+	$(call announce,📥 Installing Python requirements from firmware/requirements.txt...)
+	$(MS4_PYTHON) -m pip install -r firmware/requirements.txt
+	$(call success,Python dependencies installed)
+ 
 builder:
-	$(call announce,🔨 Building Docker image '$(BUILDER_NAME)'...)
+	$(call announce,[builder] 🔨 Building Docker image '$(BUILDER_NAME)'...)
 	docker build \
         --build-arg UID=$(USER) \
         --build-arg GID=$(GROUP) \
         -t $(BUILDER_NAME) .
-	$(call success,Docker image '$(BUILDER_NAME)' built successfully)
+	$(call success,[builder] Docker image '$(BUILDER_NAME)' built successfully)
 
 # Optional: force a full rebuild when you really need it
 builder-force:
 	docker build --no-cache -t $(BUILDER_NAME) .
 
 builder-clean:
-	$(call announce,🧹  Cleaning Docker image '$(BUILDER_NAME)'...)
+	$(call announce,[builder-clean] 🧹  Cleaning Docker image '$(BUILDER_NAME)'...)
 	docker rmi -f $(BUILDER_NAME) 2>/dev/null || true
 	docker image prune -f --filter "label=stage=builder" 2>/dev/null || true
-	$(call success,Docker image '$(BUILDER_NAME)' cleaned successfully)
+	$(call success,[builder-clean] Docker image '$(BUILDER_NAME)' cleaned successfully)
 
 builder-burn:
-	$(call announce,🔥 Starting Docker build + burn to $(MS4_PORT)...)
+	$(call announce,[builder-burn] 🔥 Starting Docker build + burn to $(MS4_PORT)...)
 	docker run \
         --device $(MS4_PORT) \
         -v $(PWD):/home/builder/workspace \
@@ -96,10 +71,10 @@ builder-burn:
 			make -C firmware assets && \
 			make -C firmware flash \
 		"
-	$(call success,Firmware built and flashed via Docker)
+	$(call success,[builder-burn] Firmware built and flashed via Docker)
 
 builder-shell:
-	$(call announce,🐚 Starting interactive Docker shell...)
+	$(call announce,[builder-shell] 🐚 Starting interactive Docker shell...)
 	docker run -it \
         --device $(MS4_PORT) \
         -v $(PWD):/home/builder/workspace \
@@ -110,33 +85,16 @@ builder-shell:
         /bin/bash
 
 builder-test: builder-shell
-	$(call announce,🧪 builder-test alias used (same as builder-shell))
+	$(call announce,[builder-test] 🧪 builder-test alias used (same as builder-shell for now...))
 
 # =============================================================================
 # Local Development Targets
 # =============================================================================
 reqs-debian: install-python-venv new-python-environment python-requirements
-	$(call announce,📦 Installing Debian system requirements...)
+	$(call announce,[reqs-debian] 📦 Installing Debian system requirements...)
 	-apt install -y docker.io docker-compose docker-buildx protobuf-compiler
-	$(call success,Debian requirements installed)
+	$(call success,[reqs-debian] Debian requirements installed)
 
-install-python-venv:
-	$(call announce,🐍 Installing python3-venv...)
-	-apt install -y python3-venv
-
-new-python-environment: install-python-venv
-	$(call announce,🌱 Creating fresh Python virtual environment...)
-	rm -rf .venv_ms4000
-	$(SYS_PYTHON) -m venv .venv_ms4000
-	$(call success,Virtual environment created at .venv_ms4000)
-	@echo -e "$(YELLOW)IMPORTANT: Run 'source .venv_ms4000/bin/activate' to activate$(RESET)"
-
-$(MS4_PYTHON): new-python-environment
-
-python-requirements: $(MS4_PYTHON)
-	$(call announce,📥 Installing Python requirements from firmware/requirements.txt...)
-	$(MS4_PYTHON) -m pip install -r firmware/requirements.txt
-	$(call success,Python dependencies installed)
 
 activate:
 	$(call announce,🔌 Activation instructions...)

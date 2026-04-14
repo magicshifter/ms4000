@@ -1,0 +1,64 @@
+# =============================================================================
+# MS4000 environment variables
+# vim: set ts=8 sts=8 sw=8 noet ft=make :
+# =============================================================================
+
+# Configuration
+
+ifndef BUILDER_NAME
+BUILDER_NAME ?= ms4000-builder
+
+
+# System and Local (.venv) python
+SYS_PYTHON := $(shell which python3)
+# Prefer venv in current dir, fallback to parent dir
+MS4_PYTHON := $(or \
+    $(wildcard $(PWD)/.venv_ms4000/bin/python3), \
+    $(wildcard $(PWD)/../.venv_ms4000/bin/python3) \
+)
+#$(MS4_PYTHON): new-python-environment
+
+# Optional: provide a hard fallback (e.g. system python) if neither exists
+MS4_PYTHON := $(or $(MS4_PYTHON), python3)
+PWD := $(shell pwd)
+USER := $(shell id -u)
+GROUP := $(shell id -g)
+ 
+MS4_FLASH_BAUD ?= 921600
+MS4_PORT ?= /dev/ttyUSB0
+
+# Auto-detect port for CP210x (Silabs) devices
+MS4_PORT_DETECTED := $(shell pio device list --json-output | $(MS4_PYTHON) -c 'exec("""\nimport json,sys\nobj=json.load(sys.stdin)\nfor y in obj:\n if "10C4:EA60" in y["hwid"].upper():\n  print(y["port"])\n""")' | head -1)
+
+# Fallback to default if detection fails
+MS4_PORT := $(or $(strip $(MS4_PORT_DETECTED)),/dev/ttyUSB0)
+
+NANOPB_DIR = $(pwd)/../tools/nanopb/
+ESPOTA = ../tools/ESP8266_ota/espota.py
+
+# =============================================================================
+# Color and Announce Macros
+# =============================================================================
+RED     = \033[1;31m
+GREEN   = \033[1;32m
+YELLOW  = \033[1;33m
+BLUE    = \033[1;34m
+MAGENTA = \033[1;35m
+CYAN    = \033[1;36m
+WHITE   = \033[1;37m
+RESET   = \033[0m
+
+define announce
+    @echo "$(RED) [MS4000-build] $(CYAN)[$$(date '+%Y-%m-%d %H:%M:%S')] $(1)$(RESET)"
+endef
+
+define success
+    @echo "$(RED) [MS4000-build] $(GREEN)[$$(date '+%Y-%m-%d %H:%M:%S')] ✅ SUCCESS: $(1)$(RESET)"
+endef
+
+define warning
+    @echo "$(RED) [MS4000-build] $(YELLOW)[$$(date '+%Y-%m-%d %H:%M:%S')] ⚠️  $(1)$(RESET)"
+endef
+
+
+endif

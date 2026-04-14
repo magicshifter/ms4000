@@ -64,6 +64,7 @@ jobs:
               exit 1
             fi
 
+            # we publish as filesystem.bin, its easier for end-users to say than littlefs.bin
             if [ -n "$FILESYSTEM_BIN" ]; then
               echo "✅ filesystem image found: $(basename $FILESYSTEM_BIN)"
               cp "$FILESYSTEM_BIN" /tmp/artifacts/firmware/filesystem.bin

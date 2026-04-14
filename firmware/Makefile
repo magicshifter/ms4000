@@ -1,58 +1,22 @@
 # =============================================================================
 # MS4000 Firmware Makefile
-# Colorful build with timestamps and emojis - CLion compatible
 # vim: set ts=8 sts=8 sw=8 noet ft=make :
 # =============================================================================
 
-SHELL := /bin/bash
 
-MS4_PYTHON = $(shell which python3)
-
-# Configuration
-MS4_FLASH_BAUD ?= 921600
-MS4_PORT ?= /dev/ttyUSB0
-
-# Auto-detect port for CP210x (Silabs) devices
-MS4_PORT=`pio device list --json-output | $(MS4_PYTHON) -c 'exec("""\nimport json,sys\n\nobj=json.load(sys.stdin)\nfor y in obj:\n if "10C4:EA60" in y["hwid"].upper():\n  print (y["port"])\n""") ' | head -1`
-
-# Fallback to default if detection fails
-MS4_PORT := $(if $(MS4_PORT),$(MS4_PORT),/dev/ttyUSB0)
-
-NANOPB_DIR = $(pwd)/../tools/nanopb/
-ESPOTA = ../tools/ESP8266_ota/espota.py
-
-# =============================================================================
-# Color and Announce Macros (same style as top-level)
-# =============================================================================
-RED     = \033[1;31m
-GREEN   = \033[1;32m
-YELLOW  = \033[1;33m
-CYAN    = \033[1;36m
-RESET   = \033[0m
-
-define announce
-    @echo -e "$(CYAN)[$$(date '+%Y-%m-%d %H:%M:%S')] $(1)$(RESET)"
-endef
-
-define success
-    @echo -e "$(GREEN)[$$(date '+%Y-%m-%d %H:%M:%S')] ✅ SUCCESS: $(1)$(RESET)"
-endef
-
-define warning
-    @echo -e "$(YELLOW)[$$(date '+%Y-%m-%d %H:%M:%S')] ⚠️  $(1)$(RESET)"
-endef
+include ../environment.ms4
 
 # =============================================================================
 # Default target
 # =============================================================================
-all: clean copy-libs proto build flash 
+all: clean copy-libs proto package build-filesystem build-firmware flash 
 	$(call success,Firmware full cycle completed)
 
 # =============================================================================
 # Core Build Targets
 # =============================================================================
 .pio/build/ms4000/firmware.bin:
-build:
+build-firmware:
 	$(call announce,🔨 [build] Building firmware with PlatformIO...)
 	pio run --upload-port $(MS4_PORT)
 	$(call success,Firmware built successfully)
@@ -67,11 +31,6 @@ burn:
 	pio run --target upload --upload-port $(MS4_PORT)
 	$(call success,Burn completed)
 
-uploadfs:
-	$(call announce,📁 Uploading LittleFS filesystem...)
-	(pio run -t uploadfs -v || ../tools/esptool-ck/esptool -vv -cd ck -cb 921600 -cp /dev/ttyUSB0 -ca 200000 -cf .pio/build/ms4000/littlefs.bin)
-	$(call success,Filesystem uploaded)
-
 monitor:
 	$(call announce,📡 Starting serial monitor at 921600 baud...)
 	pio device monitor -b 921600 --dtr 0 --rts 0 -p $(MS4_PORT)
@@ -84,7 +43,7 @@ proto: proto-clean ../MS4.proto
 	@echo "NANOPB_DIR = $(NANOPB_DIR)"
 	cd src/ && ../$(NANOPB_DIR)/generator/protoc --proto_path=../.. ../../MS4.proto \
         -o ./MS4.pb --nanopb_out=-v:./ && \
-        python3 ../../tools/nanopb/generator/nanopb_generator.py ./MS4.pb
+        $(MS4_PYTHON) ../../tools/nanopb/generator/nanopb_generator.py ./MS4.pb
 	$(call success,Protobufs generated successfully)
 
 proto-clean:
@@ -136,7 +95,6 @@ reset-device:
 clean:
 	$(call announce,🧹 Cleaning PlatformIO build artifacts...)
 	-pio run -t clean
-	rm -rf data/*
 	$(call success,Clean completed)
 
 clean-environment: proto-clean
@@ -144,24 +102,43 @@ clean-environment: proto-clean
 	rm -rf .pioenvs .piolibdeps .venv_ms4000
 	$(call success,Environment cleaned)
 
+# Packaged Assets: pre-existing things we want to package in the filesystem
 package-assets:
 	$(call announce,📦 Packaging firmware assets [.magicBitmaps/etc.] ...)
 	mkdir -p data/
 	cp -rfv assets/* data/
 	$(call success,📦 Packaging firmware assets ...)
 
-package:	package-assets
+# Packaged Web: Assets, plus a fresh build of the Web App
+# Note: web/app has dependencies on packaged assets!
+package-web:	package-assets
 	$(call announce,📦 Packaging web+firmware assets to data/ ...)
 	make -C ../web/app clean
 	make -C ../web/app build
 	make -C ../web/app package
 	$(call success,📦 Packaging web+firmware assets to data/ ...)
 
-buildfs:
-	$(call announce,📦 Building filesystem.bin from assets in data/ ...)
+# Completely clean data/
+clean-data:
+	$(call announce,🗑️  ALL assets cleaned from data/ ...)
+	rm -rf data/*
+	$(call success,Environment cleaned)
 
-assets:	package	buildfs
-	$(call announce,📦 Packaginge data assets and uploading ...)
+# Make a package from fresh assets and web
+package:	package-assets package-web
+	$(call success,📦 Packaging web+firmware assets to data/ ...)
+  
+# buildfs: Build the filesystem from the current contents of the existing data/ directory
+build-filesystem:
+	$(call announce,📦 Building filesystem.bin from current contents of data/ ...)
+	(pio run -t buildfs -v)
+	find .pio/build/ms4000 -name "*.bin" -exec ls -alF {} \;
+
+# Upload filesystem to connected shifter
+uploadfs:
+	$(call announce,📁 Uploading LittleFS filesystem...)
+	(pio run -t uploadfs -v || ../tools/esptool-ck/esptool -vv -cd ck -cb 921600 -cp /dev/ttyUSB0 -ca 200000 -cf .pio/build/ms4000/littlefs.bin)
+	$(call success,Filesystem uploaded)
 
 rebuild: clean all
 
@@ -175,9 +152,12 @@ help:
 	@echo "  burn               🔥  PlatformIO upload"
 	@echo "  monitor            📡  Open serial monitor"
 	@echo "  proto              📡  Generate Nanopb protobufs"
+	@echo "  buildfs            📦  Build filesystem.bin from assets in data/"
+	@echo "  assets             📦  Package clean assets from data/ data/"
 	@echo "  copy-libs          📚  Copy NanoPB sources"
-	@echo "  clean              🧹  Clean build artifacts"
 	@echo "  rebuild            ♻️   Clean + full build"
+	@echo "  clean              🧹  Clean build artifacts"
+	@echo "  clean-data         🧹  Clean data/ assets (Achtung!)"
 	@echo "  reset-device       🔄  Reset the device"
 	@echo -e "$(CYAN)════════════════════════════════════════════════════════════$(RESET)"
 
@@ -188,3 +168,4 @@ help:
         python-reqs activate ota ota.mode reset-device clean clean-environment \
         rebuild help
 
+# vim: set ts=8 sts=8 sw=8 noet ft=make :

@@ -79,11 +79,14 @@ jobs:
           docker cp $CONTAINER_ID:/tmp/artifacts ./artifacts 2>/dev/null || echo "No artifacts directory"
           docker rm $CONTAINER_ID
 
-      - name: Print binary details
+      - name: Print artifacts tree and other binary details
+        uses: jaywcjlove/github-action-folder-tree@main
+        with:
+          exclude: "node_modules|dist|.git|.husky"
+          path: ./artifacts
+          depth: 3
         run: |
-          echo "=== Artifacts Tree: ==="
-          tree -L 3 ./artifacts
-          echo "=== Contents: ==="
+          echo "=== Build - Full Contents: ==="
           find ./ -exec ls -alF {} \;
           echo "=== MS4000 Binary Details ==="
           if [ -f ./artifacts/firmware/firmware.bin ]; then

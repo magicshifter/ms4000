@@ -81,9 +81,11 @@ jobs:
 
       - name: Print binary details
         run: |
+          echo "=== Artifacts Tree: ==="
+          tree -L 3 ./artifacts
           echo "=== Contents: ==="
           find ./ -exec ls -alF {} \;
-          echo "=== Binary Details ==="
+          echo "=== MS4000 Binary Details ==="
           if [ -f ./artifacts/firmware/firmware.bin ]; then
             echo "firmware.bin:"
             ls -lh ./artifacts/firmware/firmware.bin

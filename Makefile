@@ -76,11 +76,7 @@ builder-burn:
 			make -C tools/esptool-ck clean && \
 			make -C tools/esptool-ck && \
 			make -C firmware clean && \
-			make -C firmware proto && \
-			make -C web/app clean && \
 			make -C web/app deps && \
-			make -C web/app build && \
-			make -C web/app package && \
 			make -C firmware && \
 			make -C firmware flash && \
 			make -C firmware uploadfs \

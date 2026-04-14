@@ -46,7 +46,7 @@ ENV PATH="/home/builder/.local/share/mise/installs/python/latest/bin:$PATH"
 COPY --chown=$UID:$GID ./ ./
 
 # Build webapp
-RUN cd web/app && make deps && make
+RUN cd web/app && make deps
 
 # Build steps (these will only re-run if the code above them changed)
 RUN cd firmware/ && make 

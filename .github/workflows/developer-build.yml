@@ -79,13 +79,19 @@ jobs:
           docker cp $CONTAINER_ID:/tmp/artifacts ./artifacts 2>/dev/null || echo "No artifacts directory"
           docker rm $CONTAINER_ID
 
-      - name: Print artifacts tree and other binary details
+      - name: Produce artifacts tree 
         uses: jaywcjlove/github-action-folder-tree@main
+        id: artifact-tree
         with:
           exclude: "node_modules|dist|.git|.husky"
           path: ./artifacts
           depth: 3
+
+      - name: Print artifacts tree and other binary details
         run: |
+          echo "=== Artifact Tree: ==="
+          echo "${{ steps.artifact-tree.outputs.content }}"
+          echo ""
           echo "=== Build - Full Contents: ==="
           find ./ -exec ls -alF {} \;
           echo "=== MS4000 Binary Details ==="

@@ -29,8 +29,8 @@ build-firmware:
 	$(call success,✅ [build-firmware] Firmware built successfully)
 
 flash: build-firmware
-	$(call announce,⚡ [flash] Flash firmware at $(MS4_FLASH_BAUD) baud on $(MS4_PORT)...)
-	../tools/esptool-ck/esptool -vv -cd ck -cb $(MS4_FLASH_BAUD) -cp $(MS4_PORT) -cf .pio/build/ms4000/firmware.bin
+	$(call announce,⚡ [flash] Flash firmware at $(MS4_BAUD_RATE) baud on $(MS4_PORT)...)
+	../tools/esptool-ck/esptool -vv -cd ck -cb $(MS4_BAUD_RATE) -cp $(MS4_PORT) -cf .pio/build/ms4000/firmware.bin
 	$(call success,✅ [flash] Firmware flashed successfully)
 
 burn:
@@ -39,7 +39,7 @@ burn:
 	$(call success,✅ [burn] Burn completed)
 
 monitor:
-	$(call announce,📡 [monitor] Start serial monitor at 921600 baud...)
+	$(call announce,📡 [monitor] Start serial monitor at $(MS4_BAUD_RATE) baud...)
 	pio device monitor -b 921600 --dtr 0 --rts 0 -p $(MS4_PORT)
 
 # =============================================================================
@@ -93,7 +93,7 @@ ota.mode:
 
 reset-device:
 	$(call announce,🔄 [reset-device] Reset device via serial...)
-	-@echo "^T^R" | pio device monitor --quiet -b 921600 --dtr 0 --rts 1 -p $(MS4_PORT) 2>/dev/null || true
+	-@echo "^T^R" | pio device monitor --quiet -b $(MS4_BAUD_RATE) --dtr 0 --rts 1 -p $(MS4_PORT) 2>/dev/null || true
 	@echo "(Inappropriate ioctl for reset is expected and harmless)"
 
 # =============================================================================
@@ -145,7 +145,7 @@ build-filesystem: package
 
 uploadfs:
 	$(call announce,📁 [uploadfs] Upload littlefs.bin filesystem...)
-	pio run -t uploadfs -v || ../tools/esptool-ck/esptool -vv -cd ck -cb 460800 -cp /dev/ttyUSB0 -ca 0x200000 -cf .pio/build/ms4000/littlefs.bin
+	pio run -t uploadfs -v || ../tools/esptool-ck/esptool -vv -cd ck -cb $(MS4_BAUD_RATE) -cp /dev/ttyUSB0 -ca 0x200000 -cf .pio/build/ms4000/littlefs.bin
 	$(call success,✅ [uploadfs] Filesystem uploaded)
 
 rebuild: clean all

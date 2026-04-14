@@ -1158,33 +1158,55 @@ public:
     }
   }
 
-  void fileDumpPath(String path) {
-    String output = "path:" + path + "\n";
+  void printTree(const String &currentPath, String prefix = "",
+                 bool isLast = true) {
+    Dir dir = LittleFS.openDir(currentPath.c_str());
 
-    // String formatResult = " format: " + LittleFS.format();
-    // slogln(formatResult);
+    bool hasEntries = false;
+    String indent = prefix + (isLast ? "└── " : "├── ");
 
-    Dir dir = LittleFS.openDir((char *)path.c_str());
-
-    slogln("system: fileDump:");
-
-    while (true) {
-      if (!dir.next()) {
-        output += "\n\n";
-        break;
-      }
-
+    while (dir.next()) {
+      hasEntries = true;
       String name = dir.fileName();
+      String fullPath = (currentPath == "/" ? "/" : currentPath + "/") + name;
 
-      output += name + " (" + String(dir.fileSize()) + ") ";
+      File entry = LittleFS.open(fullPath.c_str(), "r");
+      bool isDir = entry && entry.isDirectory();
+      size_t size = entry ? entry.size() : 0;
+      if (entry)
+        entry.close();
+
+      if (isDir) {
+        slogln(indent + name + "/");
+        String newPrefix = prefix + (isLast ? "    " : "│   ");
+        printTree(fullPath, newPrefix, true);
+      } else {
+        slogln(indent + name + " (" + String(size) + ")");
+      }
     }
 
-    slogln(output);
+    if (!hasEntries && currentPath != "/") {
+      slogln(prefix + (isLast ? "└── " : "├── ") + "(empty)");
+    }
+  }
+
+  void fileDumpPath(String path) {
+    slogln("->>onboard assets:");
+
+    if (path.length() == 0)
+      path = "/";
+    if (path.charAt(0) != '/')
+      path = "/" + path;
+
+    slogln(path);
+    printTree(path);
+    slogln("-<<onboard assets");
   }
 
   void fileDump() {
-    fileDumpPath("/assets");
+    slogln("");
     fileDumpPath("/");
+    slogln("");
   }
 };
 

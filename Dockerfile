@@ -1,6 +1,6 @@
 # Dockerfile - build MS4000 firmware.bin
 # Author: (mon7gomery)
-FROM debian:stable-20260316-slim
+FROM debian:stable-slim
 
 WORKDIR /home/builder/workspace
 
@@ -20,21 +20,30 @@ RUN groupadd -g $GID buildergroup \
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends --no-install-suggests \
-    make git rsync python3 python3-setuptools python3-pip protobuf-compiler npm build-essential \
+    make git rsync curl ca-certificates protobuf-compiler build-essential \
  && rm -rf /var/lib/apt/lists/*
-
-# npm global
-RUN npm install -g protoc-gen-js
-
-# === Python dependencies - copy ONLY requirements first ===
-COPY ./firmware/requirements.txt ./firmware/requirements.txt
-RUN pip install --root-user-action warn --break-system-packages -r firmware/requirements.txt
 
 # Switch to non-root user early
 USER builder
 
-# === Now copy source code (this layer will invalidate most often) ===
-COPY --chown=$UID:$UID ./ ./
+# Install mise
+RUN curl -fsSL https://mise.run | bash
+ENV PATH="/home/builder/.local/bin:/home/builder/.local/share/mise/shims:$PATH"
+
+# install toolchains using mise
+COPY --chown=builder:buildergroup mise.toml ./
+RUN mise trust && mise install && mise reshim
+
+# install python dependecies
+COPY --chown=$UID:$GID ./firmware/requirements.txt ./firmware/requirements.txt
+RUN python -m pip install --upgrade pip
+RUN python -m pip install -r ./firmware/requirements.txt
+
+# mise runtime PATH setup
+ENV PATH="/home/builder/.local/share/mise/installs/python/latest/bin:$PATH"
+
+# Now copy source code (this layer will invalidate most often) ===
+COPY --chown=$UID:$GID ./ ./
 
 # Build webapp
 RUN cd web/app && make deps && make
@@ -43,5 +52,5 @@ RUN cd web/app && make deps && make
 RUN cd firmware/ && make 
 
 # Optional: clean up as root if needed (but consider leaving build artifacts if you mount volumes)
-USER root
+#USER root
 # RUN rm -rf ./*   # <-- usually not needed when you mount -v $(PWD):/home/builder/workspace

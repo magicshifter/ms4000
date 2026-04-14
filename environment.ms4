@@ -3,67 +3,88 @@
 # vim: set ts=8 sts=8 sw=8 noet ft=make :
 # =============================================================================
 
-# Configuration
-
 ifndef BUILDER_NAME
 BUILDER_NAME ?= ms4000-builder
 
-# System and Local (.venv) python
-SYS_PYTHON := $(shell which python3)
+# =============================================================================
+# System Python Detection
+# =============================================================================
+# Always use the system python3 found via `which` (important for Docker builds
+# where .venv_ms4000 may not exist or should not be used).
+SYS_PYTHON := $(shell which python3 || echo python3)
 
 # =============================================================================
-# Python Virtual Environment Detection
+# Project Root Detection (robust across top-level and firmware/ subdir)
 # =============================================================================
-# Always point to the .venv_ms4000 located in the project root ($PROJECT_ROOT)/.venv_ms4000),
-# regardless of whether we are running from the top-level Makefile or from firmware/Makefile.
+# Use the directory of the first Makefile in MAKEFILE_LIST (usually this file)
+# and go up one level if we're inside firmware/
+THIS_MAKEFILE_DIR := $(dir $(firstword $(MAKEFILE_LIST)))
+PROJECT_ROOT := $(realpath $(if $(findstring /firmware/,$(THIS_MAKEFILE_DIR)),$(dir $(THIS_MAKEFILE_DIR)),$(THIS_MAKEFILE_DIR)))
 
-# Project root is always one level above the firmware/ directory
-PROJECT_ROOT := $(if $(findstring firmware,$(CURDIR)),$(dir $(CURDIR)),$(CURDIR))
-
+# =============================================================================
+# Python Virtual Environment
+# =============================================================================
+# Venv is always expected at PROJECT_ROOT/.venv_ms4000
 MS4_VENV_PYTHON := $(PROJECT_ROOT)/.venv_ms4000/bin/python3
 
-# Use the venv python if it exists, otherwise fall back to system python3
-MS4_PYTHON := $(if $(wildcard $(MS4_VENV_PYTHON)),$(MS4_VENV_PYTHON),python3)
+# Prefer venv python if it exists; otherwise fall back to system python.
+# This is critical for Docker builds (no venv) and for clean CI/local runs.
+MS4_PYTHON := $(if $(wildcard $(MS4_VENV_PYTHON)),$(MS4_VENV_PYTHON),$(SYS_PYTHON))
+
+# Also export a pip alias for consistency
+MS4_PIP := $(if $(wildcard $(MS4_VENV_PYTHON)),$(PROJECT_ROOT)/.venv_ms4000/bin/pip3,$(SYS_PYTHON) -m pip)
 
 PWD := $(shell pwd)
 USER := $(shell id -u)
 GROUP := $(shell id -g)
- 
+
 MS4_FLASH_BAUD ?= 921600
 MS4_PORT ?= /dev/ttyUSB0
 
-# Auto-detect port for CP210x (Silabs) devices
-MS4_PORT_DETECTED := $(shell pio device list --json-output | $(MS4_PYTHON) -c 'exec("""\nimport json,sys\nobj=json.load(sys.stdin)\nfor y in obj:\n if "10C4:EA60" in y["hwid"].upper():\n  print(y["port"])\n""")' | head -1)
+# =============================================================================
+# Auto-detect CP210x (Silabs) serial port via PlatformIO
+# =============================================================================
+MS4_PORT_DETECTED := $(shell \
+	pio device list --json-output 2>/dev/null | \
+	$(MS4_PYTHON) -c '\
+import json,sys;\
+data = json.load(sys.stdin) if sys.stdin.read(1) else [];\
+for item in data:\
+	if "10C4:EA60" in item.get("hwid","").upper():\
+		print(item.get("port",""));\
+		break' | head -n 1)
 
-# Fallback to default if detection fails
-MS4_PORT := $(or $(strip $(MS4_PORT_DETECTED)),/dev/ttyUSB0)
+# Fallback to default port if detection fails or returns empty
+MS4_PORT := $(or $(strip $(MS4_PORT_DETECTED)),$(MS4_PORT))
 
-NANOPB_DIR = $(pwd)/../tools/nanopb/
-ESPOTA = ../tools/ESP8266_ota/espota.py
+# =============================================================================
+# Tools & Paths (relative to PROJECT_ROOT)
+# =============================================================================
+NANOPB_DIR := $(PROJECT_ROOT)/tools/nanopb
+ESPOTA := $(PROJECT_ROOT)/tools/ESP8266_ota/espota.py
 
 # =============================================================================
 # Color and Announce Macros
 # =============================================================================
-RED     = \033[1;31m
-GREEN   = \033[1;32m
-YELLOW  = \033[1;33m
-BLUE    = \033[1;34m
-MAGENTA = \033[1;35m
-CYAN    = \033[1;36m
-WHITE   = \033[1;37m
-RESET   = \033[0m
+RED		:= \033[1;31m
+GREEN	:= \033[1;32m
+YELLOW	:= \033[1;33m
+BLUE	:= \033[1;34m
+MAGENTA := \033[1;35m
+CYAN	:= \033[1;36m
+WHITE	:= \033[1;37m
+RESET	:= \033[0m
 
 define announce
-    @echo "$(RED) [MS4000-build] $(CYAN)[$$(date '+%Y-%m-%d %H:%M:%S')] $(1)$(RESET)"
+	@echo "$(RED)[MS4000-build]$(CYAN)[$$(date '+%Y-%m-%d %H:%M:%S')] $(1)$(RESET)"
 endef
 
 define success
-    @echo "$(RED) [MS4000-build] $(GREEN)[$$(date '+%Y-%m-%d %H:%M:%S')] $(1)$(RESET)"
+	@echo "$(RED)[MS4000-build]$(GREEN)[$$(date '+%Y-%m-%d %H:%M:%S')] $(1)$(RESET)"
 endef
 
 define warning
-    @echo "$(RED) [MS4000-build] $(YELLOW)[$$(date '+%Y-%m-%d %H:%M:%S')] ⚠️  $(1)$(RESET)"
+	@echo "$(RED)[MS4000-build]$(YELLOW)[$$(date '+%Y-%m-%d %H:%M:%S')] ⚠️  $(1)$(RESET)"
 endef
 
-
-endif
+endif  # BUILDER_NAME

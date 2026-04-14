@@ -52,7 +52,7 @@ PWD := $(shell pwd)
 USER := $(shell id -u)
 GROUP := $(shell id -g)
 
-MS4_FLASH_BAUD ?= 921600
+MS4_BAUD_RATE ?= 460800 #921600
 MS4_PORT ?= /dev/ttyUSB0
 
 # =============================================================================

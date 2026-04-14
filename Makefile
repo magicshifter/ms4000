@@ -118,10 +118,10 @@ factory:
 
 # =============================================================================
 # Sub-project Targets
-# =============================================================================
+# ============================================================================
 firmware:
 	$(call announce,📟 [firmware] Build firmware...)
-	make -C firmware
+	make -C firmware all
 	$(call success,✅ [firmware] Firmware build completed)
 
 firmware-clean:

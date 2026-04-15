@@ -137,7 +137,7 @@ jobs:
         with:
           path: ./downloaded-artifacts
           pattern: |
-            *
+            firmware*
 
       - name: Prepare files for gh-pages and Release
         run: |

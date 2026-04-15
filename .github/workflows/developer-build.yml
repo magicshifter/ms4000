@@ -70,6 +70,8 @@ jobs:
               echo "⚠️  No filesystem image (spiffs.bin / littlefs.bin) found"
             fi
 
+            cd ..
+
             echo "web dist:"
             ls -lah web/app/dist
             mkdir -p /tmp/artifacts/web/dist

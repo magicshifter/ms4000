@@ -136,6 +136,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ./downloaded-artifacts
+          pattern: |
+            firmware-bin-*
+            webapp-dist-*
 
       - name: Prepare files for gh-pages and Release
         run: |

@@ -137,8 +137,7 @@ jobs:
         with:
           path: ./downloaded-artifacts
           pattern: |
-            firmware-bin-*
-            webapp-dist-*
+            *
 
       - name: Prepare files for gh-pages and Release
         run: |
@@ -146,8 +145,6 @@ jobs:
           # Copy binaries
           cp -f ./downloaded-artifacts/firmware-bin-*/firmware.bin   ./deploy/firmware/ 2>/dev/null || true
           cp -f ./downloaded-artifacts/firmware-bin-*/filesystem.bin ./deploy/firmware/ 2>/dev/null || true
-          # Copy webapp
-          cp -r ./downloaded-artifacts/webapp-dist-*/. ./deploy/web/ 2>/dev/null || true
 
           # Create a simple index.html for gh-pages
           cat > ./deploy/index.html << EOF
@@ -158,7 +155,6 @@ jobs:
           <ul>
             <li><a href="firmware/firmware.bin">firmware.bin</a></li>
             <li><a href="firmware/filesystem.bin">filesystem.bin</a> (if present)</li>
-            <li><a href="web/">Webapp (dist folder)</a></li>
           </ul>
           </body></html>
           EOF
@@ -180,7 +176,6 @@ jobs:
             Automatic build from commit ${{ github.sha }}.
             - firmware.bin
             - filesystem.bin (if built)
-            - Webapp dist
           draft: false
           prerelease: false
           files: |

@@ -44,7 +44,8 @@ jobs:
         run: |
           echo "=== Running verification inside container ==="
 
-          docker run --rm ms4000-firmware-builder:latest bash -c '
+          mkdir artifacts
+          docker run --rm -v ${{ github.workspace }}/artifacts:/tmp/artifacts ms4000-firmware-builder:latest bash -c '
             set -euo pipefail
             cd firmware
 
@@ -71,14 +72,6 @@ jobs:
 
             echo "=== Verification completed ==="
           '
-
-      - name: Extract artifacts from container
-        run: |
-          echo "Extracting build artifacts..."
-          CONTAINER_ID=$(docker create ms4000-firmware-builder:latest)
-          mkdir ./artifacts/
-          docker cp $CONTAINER_ID:/tmp/artifacts ./artifacts 2>/dev/null || echo "No artifacts directory"
-          docker rm $CONTAINER_ID
 
       - name: Produce artifacts tree 
         uses: jaywcjlove/github-action-folder-tree@main

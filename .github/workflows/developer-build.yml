@@ -99,6 +99,14 @@ jobs:
             echo "filesystem.bin: Not found"
           fi
 
+      - name: Produce artifacts tree 
+        uses: jaywcjlove/github-action-folder-tree@main
+        id: artifact-tree
+        with:
+          exclude: "node_modules|.git|.husky"
+          path: ./
+          depth: 5
+
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:

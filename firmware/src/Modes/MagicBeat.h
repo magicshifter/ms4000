@@ -124,7 +124,8 @@ public:
       if (xPos > MAX_LEDS)
         xPos = MAX_LEDS;
     } else if (_beat.mode == MS4_App_Beat_Mode_CENTER) {
-      xPos += 7.5; //(MAX_LEDS - 1) / 2.0f;
+      //xPos += 7.5;
+      xPos += (MAX_LEDS - 1) / 2.0f;
     }
 
     msSystem.msLEDs.fillLEDs(0, 0, 0, msGlobals.ggBrightness);

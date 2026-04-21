@@ -176,6 +176,10 @@ package: web assets
 
 rebuild: clean release
 
+compile_commands.json:
+	bash -c '( bear -- make ; cd web/app && bear -- make ; cd ../../firmware && bear -- make ; cd .. && jq -s 'add'   ./compile_commands.json  web/app/compile_commands.json firmware/compile_commands.json  > /tmp/compile_commands.json ; rm -f web/app/compile_commands.json firmware/compile_commands.json ; cp /tmp/compile_commands.json . ; ls -alF ./compile_commands.json )'
+
+
 # =============================================================================
 # Help
 # =============================================================================

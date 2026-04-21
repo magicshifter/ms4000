@@ -68,3 +68,6 @@ tools/nanopb/build
 
 # Vite:
 **/**.vite
+
+# compile_commands.json should be generated for CLion with 'bear -- make' per-developer
+firmware/compile_commands.json

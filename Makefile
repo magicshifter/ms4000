@@ -176,8 +176,9 @@ package: web assets
 
 rebuild: clean release
 
-compile_commands.json:
-	bash -c '( bear -- make ; cd web/app && bear -- make ; cd ../../firmware && bear -- make ; cd .. && jq -s 'add'   ./compile_commands.json  web/app/compile_commands.json firmware/compile_commands.json  > /tmp/compile_commands.json ; rm -f web/app/compile_commands.json firmware/compile_commands.json ; cp /tmp/compile_commands.json . ; ls -alF ./compile_commands.json )'
+ide-prepare:
+	@bash -c '( bear -- make ; cd web/app && bear -- make ; cd ../../firmware && bear -- make ; cd .. && jq -s 'add'   ./compile_commands.json  web/app/compile_commands.json firmware/compile_commands.json  > /tmp/compile_commands.json ; rm -f web/app/compile_commands.json firmware/compile_commands.json ; cp /tmp/compile_commands.json . ; ls -alF ./compile_commands.json )'
+	@echo "compile_commands.json has been prepared for use in an IDE - import at will."
 
 
 # =============================================================================
@@ -211,6 +212,7 @@ help:
 	@echo " ✅ [release]                 Full release: tools + builder + package + flash"
 	@echo " 🧹 [clean]                   Clean firmware and web"
 	@echo " ✅ [rebuild]                 clean + release"
+	@echo " 🏭 [ide-prepare]            Prepare compile_commands.json for use in IDE"
 	@echo ""
 	@echo "$(CYAN)═════════════════════════════════════════════════════════════════════════════════$(RESET)"
 	@echo "Python: $(MS4_PYTHON)"

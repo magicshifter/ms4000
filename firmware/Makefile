@@ -25,7 +25,7 @@ all: proto package build-filesystem build-firmware
 # =============================================================================
 build-firmware:
 	$(call announce,🔨 [build-firmware] Build firmware with PlatformIO...)
-	pio run --upload-port $(MS4_PORT)
+	pio run -e ms4000 --upload-port $(MS4_PORT)
 	$(call success,✅ [build-firmware] Firmware built successfully)
 
 flash: build-firmware
@@ -35,7 +35,7 @@ flash: build-firmware
 
 burn:
 	$(call announce,🔥 [burn] PlatformIO upload (burn)...)
-	pio run --target upload --upload-port $(MS4_PORT)
+	pio run -e ms4000 --target upload --upload-port $(MS4_PORT)
 	$(call success,✅ [burn] Burn completed)
 
 monitor:
@@ -101,7 +101,8 @@ reset-device:
 # =============================================================================
 clean:
 	$(call announce,🧹 [clean] Clean PlatformIO build artifacts...)
-	-pio run -t clean
+	-pio run -e ms4000 -t clean
+	-pio run -e ms4000-debug -t clean
 	$(call success,✅ [clean] Clean completed)
 
 clean-environment: proto-clean
@@ -139,16 +140,22 @@ package: package-assets package-web
 
 build-filesystem: package
 	$(call announce,📦 [build-filesystem] Build littlefs.bin from current contents of data/ ...)
-	pio run -t buildfs -v
+	pio run -e ms4000 -t buildfs -v
 	find .pio/build/ms4000 -name "*.bin" -exec ls -alF {} \;
 	$(call success,✅ [build-filesystem] Filesystem image built)
 
 uploadfs:
 	$(call announce,📁 [uploadfs] Upload littlefs.bin filesystem...)
-	pio run -t uploadfs -v || ../tools/esptool-ck/esptool -vv -cd ck -cb $(MS4_BAUD_RATE) -cp /dev/ttyUSB0 -ca 0x200000 -cf .pio/build/ms4000/littlefs.bin
+	pio run -e ms4000 -t uploadfs -v || ../tools/esptool-ck/esptool -vv -cd ck -cb $(MS4_BAUD_RATE) -cp /dev/ttyUSB0 -ca 0x200000 -cf .pio/build/ms4000/littlefs.bin
 	$(call success,✅ [uploadfs] Filesystem uploaded)
 
 rebuild: clean all
+
+# Uses GDBStub via PlatformIO
+debug:
+	$(call announce, ✅ Building debug version with GDBStub...)
+	pio run -e ms4000-debug 
+	@echo "Now run: pio debug or manually start GDB"
 
 # =============================================================================
 # Help

@@ -7,6 +7,13 @@
 
 #undef DEBUG_OUTPUT
 
+#ifdef USE_GDBSTUB_DEBUGGING
+
+#warning "GDBSTUB-based debugging is enabled!"
+#include <GDBStub.h>
+
+#endif
+
 #undef MS_TEST_LITTLEFS
 
 // MIDI and OSC enabled?
